@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "668872186776",
+    "project_id": "ibapp-89f3f",
+    "storage_bucket": "ibapp-89f3f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:668872186776:android:2d70a7fdc0d4d43544e9ed",
+        "android_client_info": {
+          "package_name": "com.phleim.ibapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7j8G7CuMI3hkziWyLAfDJh_UgV-PSuws"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
