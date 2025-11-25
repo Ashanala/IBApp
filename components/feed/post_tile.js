@@ -13,7 +13,7 @@ import {Ionicons} from "@expo/vector-icons";
 import ValueIcons from "./ValueIcons";
 import ImageView from "./ImageVIew";
 import USER from "../tools/constants/USER";
-import React,{useState,useEffect} from "react";
+import React,{useState,useEffect,useContext} from "react";
 import {
   millisecToString,
   reactionToString,
@@ -25,9 +25,10 @@ import {IBTheme} from "../tools/constants/ThemeFile";
 import Link from "../tools/components/Link";
 import PostDetails from "./PostContextMenu";
 import {useIsFocused} from "@react-navigation/native"
-import {copyLink} from "../tools/functions/AppTools"
-
+import {copyLink,generateVideoThumbnail} from "../tools/functions/AppTools"
+import {IBColors,ColorIndex,ColorContext,getColorStyle} from "../IBColors"
 export default function PostTile(props){
+  const {theme} = useContext(ColorContext);
   const isFocused = useIsFocused();
   const [post,setPost] = useState(props.post);
   const [showContextMenu,setShowContextMenu] = useState({});
@@ -36,13 +37,21 @@ export default function PostTile(props){
   const [hearting_post,setHeartingPost] = useState(false);
   const [showPhoto,setShowPhoto] = useState(-1);
   const [hasHeart,setHasHeart] = useState(false);
+  const [video_thumbnail,setVideoThumbnail] = useState("");
+  
+  const hasMedia = ()=>{
+    return (post?.data.photos?.length>0)||(post?.data.videos?.length > 0);
+  }
+  const hasVideo = ()=>{
+    return post?.data.videos?.length>0;
+  }
 
   const loadPhotos = async ()=>{
     for (let i = 0; i < post?.data?.photos?.length; i++) {
-      const path = post.data?.photos[i];
+      const path = post?.data?.photos[i];
       try {
         const url = await fb.requestFileUrl(path.uri);
-        const web_photo = Object.assign({}, post.data?.photos[i]);
+        const web_photo = Object.assign({}, post?.data?.photos[i]);
         web_photo.uri = url;
         post.data.photos[i] = web_photo;
         setPost(Object.assign({},post));
@@ -55,13 +64,16 @@ export default function PostTile(props){
   }
   
   const loadVideos = async ()=>{
-    if(post.data?.videos?.length>0){
-      const video = post.data?.videos[0];
+    if(post?.data?.videos?.length>0){
+      const video = post?.data?.videos[0];
       const url = await fb.requestFileUrl(video.uri);
       const web_video = Object.assign({},video);
       web_video.uri = url;
       post.data.videos[0] = web_video;
       setPost(Object.assign({},post));
+      const thumbnail = await generateVideoThumbnail(web_video.uri);
+      
+      setVideoThumbnail({uri:thumbnail})
     }
   }
   
@@ -70,7 +82,7 @@ export default function PostTile(props){
   },[isFocused])
 
   useEffect(()=>{
-    const posterID = (post.data?.poster.id)||post.data?.poster;
+    const posterID = (post?.data?.poster?.id)||post?.data?.poster;
     fb.getDocument(["users",posterID])
       .then((doc) => {
         const poster_id = doc.id;
@@ -101,7 +113,7 @@ export default function PostTile(props){
     fb.getDocument(hearts_link)
       .then((hearts_list) => {
         post.data.hearts = hearts_list.size;
-        //console.log("Hearts : ",post.data?.hearts);
+        //console.log("Hearts : ",post?.data?.hearts);
         setPost(Object.assign({},post));
       })
       .catch((reason) => {
@@ -121,36 +133,40 @@ export default function PostTile(props){
   },[]);
 
   const pinPostTile = () => {
+    const text_color = getColorStyle(theme,[1]);
     return (
       <TouchableOpacity
         style={pin_style.main}
         onPress={props.onPress}
         disabled={props.disabled}
       >
-        <View style={pin_style.title}>
-          <Text style={{fontWeight: "800", fontStyle: "italic"}}>
+        <View style={[pin_style.title,{borderColor:text_color._elm}]}>
+          <Text style={[{fontWeight: "800", fontStyle: "italic"},text_color.elm]}>
             {props.title}
           </Text>
         </View>
         <View style={pin_style.content}>
-          {post.data?.photos.length > 0 && (
+          {hasMedia() && (
             <View style={pin_style.image_view}>
               <Image
-                source={post.data?.photos[0]}
+                source={hasVideo()?video_thumbnail:post?.data?.photos[0]}
                 style={{width: "100%", height: "100%"}}
               />
+              {hasVideo()&&(<View style={{position:"absolute",justifyContent:"center",alignItems:"center",left:0,right:0,top:0,bottom:0}}>
+                <Ionicons name="play" size={30} color={"#fff8"}/>
+              </View>)}
             </View>
           )}
           <View style={pin_style.writings}>
-            <Text ellipsizeMode="tail" numberOfLines={7}>
-              {post.data?.text}
+            <Text ellipsizeMode="tail" numberOfLines={7} style={text_color.elm}>
+              {post?.data?.text}
             </Text>
             <Text
               numberOfLines={1}
               ellipsizeMode="tail"
-              style={pin_style.poster_name}
+              style={[pin_style.poster_name,text_color.elm,{borderColor:text_color.elm}]}
             >
-              {"IB:" + post.data?.poster.data?.username}
+              {"IB:" + post?.data?.poster?.data?.username}
             </Text>
           </View>
         </View>
@@ -160,10 +176,10 @@ export default function PostTile(props){
 
   const navigateToUser = () => {
     props.navigation.navigate("UserPage", {
-      pageUser: post.data?.poster,
+      pageUser: post?.data?.poster,
       user:props.user,
       unusubscribeUserAuth:props.unsubscribeUserAuth,
-      isMainUser: post.data?.poster.id == props.user?.id,
+      isMainUser: post?.data?.poster?.id == props.user?.id,
     });
   };
   
@@ -179,7 +195,7 @@ export default function PostTile(props){
         await fb.deleteDocument(heart_link);
         await fb.deleteDocument(heart_notif_doc);
           setHasHeart(false);
-          post.data.hearts = post.data?.hearts - 1;
+          post.data.hearts = post?.data?.hearts - 1;
           setPost(Object.assign({},post));
         }
         catch(reason) {
@@ -190,21 +206,23 @@ export default function PostTile(props){
       else {
         try{
         await fb.setDocument(heart_link,{date: Date.now()});
-        const messages = [
-          "❤️ Your post just got a new heart!",
-          "💖 Someone loved your post!",
-          "💘 New heart reaction received!",
-          "💓 Another heart landed on your post!"
-          ];
-        await fb.setDocument(heart_notif_doc,{
-          time:Date.now(),
-          text:messages[Math.floor(Math.random()*4)],
-          text_link:"IB::"+post?.id,
-          sender:"ibapp_heart",
-        },true);
-        fb.incrementField(heart_notif_doc.slice(0,2),"notifs",1)
-        setHasHeart(true);
-        post.data.hearts = post.data?.hearts+1;
+          if(poster_id!=props.user?.id){
+            const messages = [
+              "❤️ Your post just got a new heart!",
+              "💖 Someone loved your post!",
+              "💘 New heart reaction received!",
+              "💓 Another heart landed on your post!"
+              ];
+            await fb.setDocument(heart_notif_doc,{
+              time:Date.now(),
+              text:messages[Math.floor(Math.random()*4)],
+              text_link:"IB::"+post?.id,
+              sender:"ibapp_heart",
+            },true);
+            fb.incrementField(heart_notif_doc.slice(0,2),"notifs",1)
+          }
+            setHasHeart(true);
+            post.data.hearts = post?.data?.hearts+1;
         }
         catch(error) {
             //CANNOT HEART
@@ -227,16 +245,16 @@ export default function PostTile(props){
         try{
           console.log("Clearing...");
           try{
-          await fb.deleteDocument(["users",post.data?.poster?.id,"posts",post?.id]);
-          console.log("Cleared ",post.id, " from ",post.data.poster.id, " posts");
+          await fb.deleteDocument(["users",post?.data?.poster?.id,"posts",post?.id]);
+          console.log("Cleared ",post.id, " from ",post?.data.poster?.id, " posts");
           }
           catch(reason){
             console.log("Error : ",reason);
           }
           console.log("Clearing Done!");
-          for (let i = 0; i < post.data?.photos?.length; i++) {
+          for (let i = 0; i < post?.data?.photos?.length; i++) {
             try {
-              const photo_uri = post.data?.photos[i].uri;
+              const photo_uri = post?.data?.photos[i].uri;
               console.log("Deleting Image : ",photo_uri)
               await fb.deleteFile(photo_uri);
             } catch (error) {
@@ -263,7 +281,15 @@ export default function PostTile(props){
     setDeletingPost(true);
   }
 
-  const string_time = millisecToString(Date.now() - post.data?.time);
+  const string_time = millisecToString(Date.now() - post?.data?.time);
+  
+  
+  const main_color = getColorStyle(theme,[1]);
+  const inner_color = getColorStyle(theme,[1,0]);
+  const other_color = getColorStyle(theme,[0]);
+  const other_inner_color = getColorStyle(theme);
+  
+  const post_available = (post?.data?.text && (post?.data?.photos || video_thumbnail));
     return (
       <View
         style={{flex: 1}}
@@ -277,12 +303,14 @@ export default function PostTile(props){
           transparent
         >
           <PostDetails
+            theme={theme}
             post={post}
             user={props.user}
             index={showContextMenu}
             navigation={props.navigation}
             disableUserPicture={props.disableUserPicture}
             onDelete={deletePost}
+            thumbnail={video_thumbnail}
           />
         </Modal>
         {!props.pin ? (
@@ -293,16 +321,16 @@ export default function PostTile(props){
           >
             <View style={{justifyContent: "center", alignItems: "center"}}>
               <View style={styles.body}>
-                <View style={styles.main}>
-                  <View style={styles.header}>
-                    <Text style={styles.username}>
-                      {"IB:" + (post.data?.poster.data?.username || "ibuser")}
+                <View style={[styles.main,main_color.bkg]}>
+                  <View style={[styles.header,{borderColor:main_color._elm}]}>
+                    <Text style={[styles.username,main_color.elm]}>
+                      {"IB:" + (post?.data?.poster?.data?.username || "ibuser")}
                     </Text>
-                    <Text style={styles.time}>{string_time}</Text>
+                    <Text style={[styles.time,main_color.elm]}>{string_time}</Text>
                   </View>
-                  {post.data?.text != "" && (
+                  {post?.data?.text != "" && (
                     <TouchableOpacity
-                      style={styles.text_view}
+                      style={[styles.text_view,inner_color.bkg]}
                       onPress={() => {
                         setShowContextMenu(-1)}}
                       onLongPress={()=>{
@@ -310,31 +338,30 @@ export default function PostTile(props){
                         copyLink(post?.data?.text,true);
                       }}
                       }
+                      disabled={!post_available}
                     >
                       <Text
-                        style={styles.text}
+                        style={[styles.text,inner_color.elm]}
                         numberOfLines={10}
                         ellipsizeMode="tail"
                       >
-                        {post.data?.text}
+                        {post?.data?.text}
                       </Text>
                     </TouchableOpacity>
                   )}
                   <ImageView
                     style={{margin: 5}}
-                    source={post.data?.photos}
+                    source={hasVideo()?[video_thumbnail]:post?.data?.photos}
                     onSelect={(index) => {
                       setShowContextMenu(index);}}
+                    thumbnail={hasVideo()}
+                    disabled={!post_available}
                   />
-                  {post.data.videos&&(<IBVideoView  
-                  source={post.data.videos[0]} 
-                  preview
-                  style={{margin:5}}
-                  onSelect={(index)=>{
-                    setShowContextMenu(index);
-                  }}/>)}
+                  {post?.data?.photos?.length>1&&<View style={{alignItems:'flex-start',marginLeft:5}}>
+                    <Text style={[{fontStyle:'italic',fontWeight:'500'},main_color.elm]}>{post?.data?.photos.length+" photos."}</Text>
+                  </View>}
                   <View>
-                    {post.data?.links?.map((link, index, array) => {
+                    {post?.data?.links?.map((link, index, array) => {
                       return (
                         <Link text={link.text} href={link.href} key={index} />
                       );
@@ -342,17 +369,17 @@ export default function PostTile(props){
                   </View>
                 </View>
                 <View
-                  style={styles.footer}
-                  pointerEvents={post.data?.poster.data ? "auto" : "none"}
+                  style={[styles.footer,{backgroundColor:other_color._bkg+"88"}]}
+                  pointerEvents={post?.data?.poster?.data ? "auto" : "none"}
                 >
                   <TouchableOpacity
-                    style={styles.details}
+                    style={[styles.details,{borderColor:other_color._elm}]}
                     disabled={props.disableUserPicture}
                     onPress={navigateToUser}
                   >
                     <Image
                       source={
-                        post.data?.poster?.data?.photo ||
+                        post?.data?.poster?.data?.photo ||
                         CONST.default_profile_photo
                       }
                       style={{width: 50, height: 50, borderRadius: 25}}
@@ -360,14 +387,15 @@ export default function PostTile(props){
                     <Ionicons
                       name="star"
                       size={30}
-                      color={starColor(post.data?.poster?.data?.stars)}
+                      color={starColor(post?.data?.poster?.data?.stars)}
                       style={{position: "absolute", right: 0, bottom: 0}}
                     />
                   </TouchableOpacity>
                   <View>
                     <ValueIcons
+                      color={other_inner_color}
                       clicked={hasHeart}
-                      value={reactionToString(post.data?.hearts)}
+                      value={reactionToString(post?.data?.hearts)}
                       onPress={heartPost}
                       disabled={hearting_post||(!props.user?.data?.verified)}
                     />
@@ -380,7 +408,7 @@ export default function PostTile(props){
                           left: 0,
                           right: 0,
                         }}
-                        color={"white"}
+                        color={other_inner_color._elm}
                       />
                     )}
                   </View>
@@ -394,11 +422,11 @@ export default function PostTile(props){
                     top: 0,
                     right: 0,
                     bottom: 0,
-                    backgroundColor: "#00000055",
+                    backgroundColor: main_color._bkg+"33",
                     borderRadius: 10,
                   }}
                   size={"large"}
-                  color={IBTheme.defaultTextColor}
+                  color={main_color._elm}
                 />
               )}
             </View>
@@ -411,7 +439,6 @@ export default function PostTile(props){
 const styles = StyleSheet.create({
   main: {
     width: "95%",
-    backgroundColor: IBTheme.postBackgroundColor,
     borderRadius: 10,
     borderBottomRightRadius: 0,
     padding: 3,
@@ -422,20 +449,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderColor: IBTheme.postTextColor,
   },
   text_view: {
-    backgroundColor: IBTheme.postTextBackgroundColor,
     margin: 5,
     borderRadius: 10,
   },
   text: {
-    color: IBTheme.postTextColor,
     textAlign: "left",
     padding: 5,
   },
   footer: {
-    backgroundColor: "#0af",
     justifyContent: "flex-end",
     flexDirection: "row",
     alignSelf: "flex-end",
@@ -449,7 +472,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 27,
     borderWidth: 2,
-    borderColor: "white",
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
@@ -462,11 +484,9 @@ const styles = StyleSheet.create({
     width:"100%"
   },
   username: {
-    color: IBTheme.postTextColor,
     fontStyle: "italic",
   },
   time: {
-    color: IBTheme.postTextColor,
     fontStyle: "italic",
   },
 });

@@ -11,8 +11,9 @@ import {millisecToString} from "../tools/functions/Tools";
 import CONST from "../tools/constants/CONST";
 import {fb} from "../tools/firebase/IBFirebase";
 import {useState,useEffect} from "react";
-
+import {getColorStyle} from "../IBColors"
 export default function CommentTile(props){
+  const theme = props.theme;
   const [comment_user,setCommentUser] = useState({})
   const [commentUser_name,setCommentUserName] = useState("ibuser");
   const [commentUser_photo,setCommentUserPhoto] = useState(CONST.default_profile_photo);
@@ -50,8 +51,10 @@ export default function CommentTile(props){
     })
   }
   
+  const main_color = getColorStyle(theme,[0,1]);
+  const inner_color = getColorStyle(theme,[0,1,0]);
   return (
-  <View style={styles.main}>
+  <View style={[styles.main,main_color.bkga("55")]}>
     <View style={{
         flexDirection:"row"
       }}>
@@ -65,16 +68,16 @@ export default function CommentTile(props){
         >
         <View
         style={styles.comment_content}>
-        <View style={styles.header}>
-          <Text style={styles.header_text}>
+        <View style={[styles.header,inner_color.bkga("aa")]}>
+          <Text style={[styles.header_text,inner_color.elm]}>
             {commentUser_name}
           </Text>
-          <Text style={{color:"#fff"}}> {millisecToString(Date.now()-props.comment.time)}
+          <Text style={inner_color.elm}> {millisecToString(Date.now()-props.comment.time)}
           </Text>
         </View>
         <View style={{flexDirection:"row",justifyContent:"flex-start"}}>
-        <View style={styles.content}>
-          <Text style={{color:"#fff"}}>{props.comment.text}</Text>
+        <View style={[styles.content,inner_color.bkg]}>
+          <Text style={inner_color.elm}>{props.comment.text}</Text>
         </View>
         </View>
         </View>

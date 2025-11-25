@@ -42,5 +42,5 @@ export default class CONST {
 
   static default_profile_photo = require("../../../assets/user.png");
 
-  static lauchDate = {year: 2024, month: 11, date: 1};
+  static lauchDate = {year: 2025, month: 7, date: 31};
 }

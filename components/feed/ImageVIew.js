@@ -1,4 +1,5 @@
-import {Image, StyleSheet, TouchableHighlight, View} from "react-native";
+import {Image, StyleSheet, TouchableHighlight, View,TouchableOpacity} from "react-native";
+import {Ionicons} from "@expo/vector-icons"
 
 export default function ImageView(
   props = {
@@ -47,6 +48,7 @@ export default function ImageView(
               onPress={() => {
                 props.onSelect(index);
               }}
+              disabled={props.thumbnail}
             >
               <Image
                 source={
@@ -60,6 +62,21 @@ export default function ImageView(
             </TouchableHighlight>
           );
         })}
+        {props.thumbnail&&(<TouchableOpacity
+          onPress={()=>{
+            props.onSelect(0);
+          }}
+          disabled={props.disabled}
+          style={{
+            position:'absolute',
+            left:0,
+            right:0,
+            top:0,
+            bottom:0,
+            justifyContent:"center",
+            alignItems:"center"}}>
+              <Ionicons name="play" size={40} color="#fff8"/>
+        </TouchableOpacity>)}
       </View>
     )
   );

@@ -30,6 +30,8 @@ import * as NetInfo from "@react-native-community/netinfo";
 import FeedType from "../feed/FeedType";
 import {IBTheme, xIBTheme} from "../tools/constants/ThemeFile";
 import LoginView from "../tools/components/LoginView"
+import {IBColors,ColorIndex,getColorStyle,ColorContext} from "../IBColors"
+import {getBannerAdId} from "../tools/AdTools"
 
 
 import {AppContext} from "../AppContext"
@@ -37,6 +39,7 @@ import {useContext,useCallback} from "react"
 import {useIsFocused} from "@react-navigation/native"
 
 export default function MainPage(props){
+    const {theme} = useContext(ColorContext);
     const isFocused = useIsFocused();
     const {user,is_online,setShowNav} = useContext(AppContext)
     const [date,setDate] = useState(new IBDate(new Date(Date.now())));
@@ -155,15 +158,24 @@ export default function MainPage(props){
       },
     });
   }
-
-  const navigateToConnectFeed = () => {
+  
+  const navigateToTopFeed = ()=>{
     props.navigation.navigate({
-      name: "Feed",
-      params: {
-        type: FeedType.CONNECT,
-      },
-    });
-  };
+      name:"Feed",
+      params:{
+        type:FeedType.TOP,
+      }
+    })
+  }
+  
+  const navigateToLatestFeed = ()=>{
+    props.navigation.navigate({
+      name:"Feed",
+      params:{
+        type:FeedType.LATEST,
+      }
+    })
+  }
 
   const selectPinPost = (event) => {
     if (pins.length>0) {
@@ -192,9 +204,9 @@ export default function MainPage(props){
     clicked_date.is_after_launch = new IBDate(
       new_clicked_date
     ).isGreaterThan(new IBDate({...CONST.lauchDate}));
-    clicked_date.is_before_today = new IBDate(
+    clicked_date.is_before_tommorow = new IBDate(
       new_clicked_date
-    ).isLesserThan(new IBDate(new Date(Date.now())));
+    ).isLesserThan(new IBDate(new Date(Date.now()+1000*60*60*24)));
     
     setClickedDate({...clicked_date});
     setShowDateOptions(true);
@@ -229,11 +241,16 @@ export default function MainPage(props){
     const online_info = "Explore Posts";
     const offline_info = "You're offline";
 
-    const banner_ad_id = "ca-app-pub-9335898231322005/8503385594";
-    const test_banner_ad_id = "ca-app-pub-3940256099942544/9214589741";
+    const banner_ad_id = getBannerAdId(false);
 
+    const main_color = getColorStyle(theme);
+    const panel_color = getColorStyle(theme,[0]);
+    const panel_inner_color = getColorStyle(theme,[0,0]);
+    const panel_other_color = getColorStyle(theme,[0,1]);
+    const feed_color = getColorStyle(theme,[1]);
+    const feed_element_color = getColorStyle(theme,[1,0]);
     return (
-      <View style={styles.main} onTouchStart={()=> setShowNav(false)}>
+      <View style={[styles.main,main_color.bkg]} onTouchStart={()=> setShowNav(false)}>
         <Modal
           visible={show_date_options}
           transparent
@@ -253,44 +270,39 @@ export default function MainPage(props){
         </SafeAreaView>
         <Selector
           value={date.year}
-          style={styles.year_selector}
-          size={THEME.bigTextSize}
+          style={[styles.year_selector,panel_color.bkg]}
           onChange={changeYear}
+          color = {panel_color._elm}
         />
         <Selector
           value={CONST.Month[date.month - 1]}
-          style={styles.year_selector}
-          size={THEME.bigTextSize}
+          style={[styles.year_selector,panel_color.bkg]}
           onChange={changeMonth}
+          color={panel_color._elm}
         />
-        <View style={styles.calendar_view}>
+        <View style={[styles.calendar_view,panel_color.bkg]}>
           <Calendar
             date={Object.assign({},date)}
             width={calendar_width}
             today={today}
             onPress={datePressed}
+            color = {panel_color._elm}
+            today_bg = {panel_inner_color._bkg}
+            osavoh_bg = {panel_other_color._bkga("55")}
+            today_osavoh_bg={panel_other_color._bkg}
           />
         </View>
         <View style={styles.bottom_panel}>
-          <View style={styles.today}>
-            <Text style={styles.today_text}>{today.toText()}</Text>
-            <TouchableOpacity style={{
-              position:'absolute',
-              top:-10,
-              right:10,
-              backgroundColor: 'white',
-              width:20,
-              height:20,
-              justifyContent: 'center',
-              borderRadius:15
-            }}
+          <View style={[styles.today,panel_color.bkg]}>
+            <Text style={[styles.today_text,panel_color.elm]}>{today.toText()}</Text>
+            <TouchableOpacity style={[styles.pin_hider,feed_color.bkg]}
             onPress={()=>{
               setShowPins((prev_show)=>{
                 return !prev_show;
               })
             }}
             >
-              <Ionicons name="close" size={20} />
+              <Ionicons name={show_pins?"close":"chevron-down"} size={20} color={feed_color._elm}/>
             </TouchableOpacity>
           </View>
           {show_pins&&(<SafeAreaView
@@ -298,7 +310,7 @@ export default function MainPage(props){
             edges={["left", "right", "bottom"]}
           >
             <PagerView
-              style={styles.pinview}
+              style={[styles.pinview,feed_color.bkg]}
               ref={pagerRef}
               onPageSelected={selectPinPost}
               onTouchStart={stopAutoSwipe}
@@ -310,15 +322,15 @@ export default function MainPage(props){
             >
               {pins.length == 0 ? (is_online ? (
                   <View style={styles.loading_pinview}>
-                    <Text style={styles.loading_pinview_text}>
+                    <Text style={[styles.loading_pinview_text,feed_color.elm]}>
                       {loading_pinview_text}
                     </Text>
-                    <ActivityIndicator color={xIBTheme.tertiaryColor} />
+                    <ActivityIndicator color={feed_color._elm} />
                   </View>
                 ) : (
-                  <View style={styles.offline_pinview}>
-                    <Ionicons name="cloud-offline" size={50} color={"white"} />
-                    <Text style={styles.offline_pinview_text}>
+                  <View style={[styles.offline_pinview,feed_element_color.bkg]}>
+                    <Ionicons name="cloud-offline" size={50} color={feed_element_color._elm}/>
+                    <Text style={[styles.offline_pinview_text,feed_element_color.elm]}>
                       {offline_pinview_text}
                     </Text>
                   </View>
@@ -338,20 +350,29 @@ export default function MainPage(props){
                 })
               )}
             </PagerView>
-            <TouchableOpacity
-              style={styles.feed_button}
-              disabled={!is_online}
-              onPress={navigateToConnectFeed}
+            {!is_online?
+            (<View
+              style={[styles.feed_button,feed_color.bkg]}
             >
               <Ionicons
-                name={is_online ? "newspaper-outline" : "cloud-offline"}
-                color={THEME.backColor2}
+                name={"cloud-offline"}
+                color={feed_color._elm}
                 size={50}
               />
-              <Text style={styles.feed_button_text}>
-                {is_online ? online_info : offline_info}
+              <Text style={[styles.feed_button_text,feed_color.elm]}>
+                {offline_info}
               </Text>
-            </TouchableOpacity>
+            </View>):(
+            <View style={[styles.feed_button,feed_color.bkg]}>
+              <TouchableOpacity style={[styles.feed_inner_button,feed_element_color.bkg]} onPress={navigateToTopFeed}>
+                <Ionicons name="flame" size={30} color="#fc5"/>
+                <Text style={[styles.feed_inner_button_text,feed_element_color.elm]}> Top 🔥 </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.feed_inner_button,feed_element_color.bkg]} onPress={navigateToLatestFeed}>
+                <Ionicons name="flash" size={30} color="#5cf"/>
+                <Text style={[styles.feed_inner_button_text,feed_element_color.elm]}> Latest 🆕 </Text>
+              </TouchableOpacity>
+            </View>)}
           </SafeAreaView>)}
         </View>
       </View>
@@ -362,18 +383,18 @@ const styles = StyleSheet.create({
   main: {
     justifyContent: "center",
     flex: 1,
-    backgroundColor: IBTheme.backgroundColor,
+    backgroundColor: IBColors.background[ColorIndex.BASIC],
   },
   calendar_view: {
     minHeight: 350,
-    backgroundColor: IBTheme.surfaceColor,
+    backgroundColor: IBColors.surface[ColorIndex.BASIC],
     marginVertical: 2,
   },
   year_selector: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-evenly",
-    backgroundColor: IBTheme.surfaceColor,
+    backgroundColor: IBColors.surface[ColorIndex.BASIC],
     borderRadius: 10,
     margin: 1,
   },
@@ -384,11 +405,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   today: {
-    backgroundColor: IBTheme.surfaceColor,
+    backgroundColor: IBColors.surface[ColorIndex.BASIC],
     marginBottom: 2,
   },
   feed_button: {
-    backgroundColor: "white",
+    backgroundColor: IBColors.surface[ColorIndex.DISTINCT],
     margin: 5,
     justifyContent: "center",
     alignItems: "center",
@@ -421,7 +442,7 @@ const styles = StyleSheet.create({
   offline_pinview: {
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: xIBTheme.tertiaryColor,
+    backgroundColor: IBColors.surface[ColorIndex.EXTRA],
     minWidth: "60%",
     padding: 10,
     flex: 1,
@@ -435,8 +456,30 @@ const styles = StyleSheet.create({
   pinview: {
     flex: 3,
     margin: 10,
-    backgroundColor: "white",
+    backgroundColor: IBColors.surface[ColorIndex.DISTINCT],
   },
   bottom_feed_panel: {flexDirection: "row", flex: 1},
   bottom_panel: {flex: 1},
+  feed_inner_button:{
+                backgroundColor:IBColors.layer[ColorIndex.DISTINCT],
+                justifyContent:'center',
+                alignItems: 'center',
+                padding:8,
+                borderRadius:5,
+                marginVertical:3
+  },
+  feed_inner_button_text:{
+                  color:'#fff',
+                  fontStyle:'italic',
+                  fontWeight: '500',
+                },
+  pin_hider : {
+              position:'absolute',
+              top:-10,
+              right:10,
+              width:20,
+              height:20,
+              justifyContent: 'center',
+              borderRadius:15
+            }
 });

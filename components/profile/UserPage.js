@@ -22,7 +22,8 @@ import {loadVisualMedia} from "../tools/MediaTools";
 import CONST from "../tools/constants/CONST";
 import {loadRewardAd} from "../tools/AdTools"
 import UserDetailTile from "./UserDetailTile";
-import {IBTheme} from "../tools/constants/ThemeFile";
+import {IBTheme} from "../tools/constants/ThemeFile"
+import {IBColors,ColorIndex,ColorContext,getColorStyle} from "../IBColors"
 import {copyLink} from "../tools/functions/AppTools"
 
 import * as Navigation from "../RootNavigator"
@@ -30,6 +31,7 @@ import {AppContext} from "../AppContext"
 
 export default function UserPage(props){
   const {user,setShowNav,author_request_link} = useContext(AppContext)
+  const {theme} = useContext(ColorContext)
   
   
   const LOADING_ADS_START = 0;
@@ -57,7 +59,7 @@ export default function UserPage(props){
   const pageUserCanPost = pageUser?.data?.level>0
   
   const setStar = (star)=>{
-    //console.log("Input Star : ",star);
+    //////console.log("Input Star : ",star);
     const new_data = {
       ...pageUser.data,
       stars:star,
@@ -72,21 +74,23 @@ export default function UserPage(props){
   const [reload_switch,switchReload] = useState(false);
   useEffect(()=>{
     if(pageUser.data){
-      console.log("Page User Data Available");
+      ////console.log("Page User Data Available");
     }else{
-      console.log("Page User Data UNAVAILABLE");
+      ////console.log("Page User Data UNAVAILABLE");
       fb.getDocument(["users",pageUser.id]).then((doc)=>{
-        setPageUser({id:pageUser.id,data:doc.data()});
+        const data = doc.data();
+        setPageUser({id:pageUser.id,data:data});
+        setUserInfo(data.info)
         switchReload(!reload_switch);
       })
     }
-  },[])
+  },[user])
   
   useEffect(()=>{
     if(pageUser.data){
     const stars_link = ["users",pageUser.id,"stars"];
     fb.getDocument(stars_link).then((value) => {
-      //console.log("Stars : ",value.size);
+      ////console.log("Stars : ",value.size);
       setStar(value.size);
     });
     if (user) {
@@ -132,19 +136,19 @@ export default function UserPage(props){
         const star_notif_doc = ["users",pageUser.id,"notifications","star_"+user.id+"_"+pageUser.id];
         setLoadingStars(true);
         const unstar = async ()=>{
-          //console.log("UNSTARRING...");
+          ////console.log("UNSTARRING...");
           await fb.deleteDocument(pageUser_star_doc);
-          //console.log("UNSTARRING___");
+          ////console.log("UNSTARRING___");
           await fb.deleteDocument(user_starred_doc);
           await fb.deleteDocument(star_notif_doc);
-          //console.log("DONE!");
+          ////console.log("DONE!");
           setStar(pageUser.data?.stars-1)
           setLoadingStars(false);
           setStarred(false);
         }
         const star = async ()=>{
-          await fb.setDocument(pageUser_star_doc,{date: Date.now()});
-          await fb.setDocument(user_starred_doc,{date: Date.now()});
+          await fb.setDocument(pageUser_star_doc,{time: Date.now()});
+          await fb.setDocument(user_starred_doc,{time: Date.now(),id:pageUser.id});
           
           const messages = [
           "⭐ Your account just received a new star!",
@@ -154,7 +158,7 @@ export default function UserPage(props){
           await fb.setDocument(star_notif_doc,{
             time:Date.now(),
             text:messages[Math.floor(Math.random() *4)],
-            text_link:"IB:"+pageUser.id,
+            text_link:"IB:"+user.id,
             sender:"ibapp_star",
           },true)
           fb.incrementField(star_notif_doc.slice(0,2),"notifs",1);
@@ -185,7 +189,7 @@ export default function UserPage(props){
           ToastAndroid.showWithGravity("Profile Photo Updated!",ToastAndroid.SHORT,ToastAndroid.BOTTOM);
         }catch(reason){
           setLoadingImage(false);
-          console.log("CANNOT Update Profile Photo : ",reason);
+          ////console.log("CANNOT Update Profile Photo : ",reason);
           ToastAndroid.showWithGravity("Error : Cannot Update Profile Photo",ToastAndroid.SHORT,ToastAndroid.BOTTOM);
         }
       },
@@ -212,12 +216,12 @@ export default function UserPage(props){
     setLoadingAds(LOADING_ADS_START);
     const rewardAd_unsubscribe = loadRewardAd(
     async (payload) => {
-      console.log("HEY");
+      ////console.log("HEY");
       const new_quota = {
         ...pageUser.data?.quota,
         count : (pageUser.data?.quota?.count+1)||1,
       };
-      console.log("New Quota : ",new_quota);
+      ////console.log("New Quota : ",new_quota);
       setLoadingAds(LOADING_ADS_UPDATING_QUOTA);
       await fb.setDocument(["users",user.id],{
           quota: new_quota,
@@ -241,9 +245,12 @@ export default function UserPage(props){
     });
   };
   
+  const main_color = getColorStyle(theme)
+  const inner_color = getColorStyle(theme,[0]);
+  const deep_color = getColorStyle(theme,[0,1]);
   return (
     <View
-      style={styles.main}
+      style={[styles.main,main_color.bkg]}
       onTouchStart={()=>{setShowNav(false)}}
       pointerEvents={uploading_image ? "none" : "auto"}
       >
@@ -253,6 +260,7 @@ export default function UserPage(props){
         onRequestClose={() => {setShowLoginModal(false);}}
       >
         <LoginView
+          theme={theme}
           navigation={Navigation}
           onCancel={() =>{ 
             setShowLoginModal(false);
@@ -277,7 +285,7 @@ export default function UserPage(props){
           style={styles.background_image}
         />
         <TouchableOpacity
-          style={styles.image_circle}
+          style={[styles.image_circle,main_color.elm]}
           disabled={!isMainUser}
           onPress={uploadImage}
         >
@@ -288,39 +296,39 @@ export default function UserPage(props){
           {uploading_image && (
             <ActivityIndicator
               style={{position: "absolute"}}
-              color={"white"}
+              color={main_color.elm}
               size={"large"}
             />
           )}
         </TouchableOpacity>
       </View>
       <ScrollView>
-        {(user_info!=""||isMainUser)&&(<View  style={[styles.item_style, styles.details_view]}>
-          <TouchableOpacity disabled={!isMainUser || info_editmode} style={{backgroundColor:"#33f5", padding:10,margin:5,borderRadius:10,borderTopLeftRadius:0,borderBottomRightRadius:30,}} onLongPress={()=>{setInfoEditMode(true)}}>
-            <TextInput style={{ color:"#fff",fontStyle:"italic",textAlign:'center'}} 
+        {(user_info!=""||isMainUser)&&(<View  style={[styles.item_style, styles.details_view,inner_color.bkga("aa")]}>
+          <TouchableOpacity disabled={!isMainUser || info_editmode} style={
+          [styles.tagline_view,deep_color.bkg]} onLongPress={()=>{setInfoEditMode(true)}}>
+            <TextInput 
+            style={[styles.tagline_text,deep_color.elm]}
             value={user_info}
             multiline={true}
             maxLength={80}
-            placeholder={isMainUser?"Type your tagline here (max. 80)":undefined}
+            placeholder={isMainUser?"Long press to edit your tagline (max. 80)":undefined}
             editable={info_editmode} 
             onChangeText={setUserInfo}/>
           </TouchableOpacity>
-          {info_editmode&&(<TouchableOpacity style={{backgroundColor:"#8855",position:"absolute", bottom:10,right:10,padding:5,borderRadius:5,
-          }} onPress={()=>{
+          {info_editmode&&(<TouchableOpacity style={[styles.tagline_save_button]} onPress={()=>{
             setInfoEditMode(false);
             fb.setDocument(["users",user?.id],{info:user_info},true).then(()=>{
               ToastAndroid.show("Tagline Updated!",ToastAndroid.SHORT)
             })
-          }}><Ionicons name="save" color="#fff" size={20}/></TouchableOpacity>)}
+          }}><Ionicons name="save" color={inner_color._elm} size={20}/></TouchableOpacity>)}
         </View>)}
-        <View style={[styles.item_style, styles.details_view]}>
+        <View style={[styles.item_style, styles.details_view,inner_color.bkga("aa")]}>
           <TouchableOpacity
-            style={{
+            style={[{
               alignSelf: "flex-end",
-              backgroundColor: "#0af5",
               borderWidth: starred ? 2 : undefined,
               borderColor: starred ? "blue" : undefined,
-            }}
+            },deep_color.elm]}
             disabled={isMainUser || !user}
             onPress={starUser}
           >
@@ -332,49 +340,53 @@ export default function UserPage(props){
             {!isMainUser && starred && (
               <Ionicons
                 name="checkmark-done"
-                color="blue"
+                color={deep_color._elm}
                 size={40}
                 style={{position: "absolute", bottom: 0, right: 0}}
               />
             )}
           </TouchableOpacity>
           <View>
-            <Text style={styles.username}>{pageUser_name}</Text>
+            <Text style={[styles.username,inner_color.elm]}>{pageUser_name}</Text>
             {loading_stars? (
-              <ActivityIndicator color={IBTheme.defaultTextColor} />
+              <ActivityIndicator color={inner_color._elm} />
             ) : (
-              <Text style={styles.stars}>{pageUser.data?.stars} Stars</Text>
+              <Text style={[styles.stars,inner_color.elm]}>{pageUser.data?.stars} Stars</Text>
             )}
           </View>
         </View>
-        <View style={[styles.item_style, styles.totals_view]}>
-          <View style={styles.extra_details}>
-            <Ionicons name="time" size={20} style={{marginHorizontal: 10}} />
-            <Text style={styles.extra_details_text}>
+        <View style={[styles.item_style, styles.totals_view,inner_color.bkga("aa")]}>
+          {/*<View style={[styles.extra_details,deep_color.bkg]}>
+            <Ionicons name="time" size={20} style={{marginHorizontal: 10}}
+            color={deep_color._elm}/>
+            <Text style={[styles.extra_details_text,deep_color.elm]}>
               Joined {millisecToString(Date.now() - pageUser.data?.time)}
             </Text>
-          </View>
+          </View>*/}
           {last_post_time > 0 && (
-            <View style={styles.extra_details}>
+            <View style={[styles.extra_details,deep_color.bkg]}>
               <Ionicons
                 name="timer"
                 size={20}
                 style={{marginHorizontal: 10}}
+                color={deep_color._elm}
               />
-              <Text style={styles.extra_details_text}>
+              <Text style={[styles.extra_details_text,deep_color.elm]}>
                 Last post :{" "}
                 {millisecToString(Date.now() - last_post_time)}
               </Text>
             </View>
           )}
           {(pageUserCanPost)&&(
-            <Ionicons name="checkmark-circle-outline" size={30} color="#0f5"/>
+            <Ionicons name="checkmark-circle-outline" size={30} color={inner_color._elm}/>
           )
           }
         </View>
 
         {isMainUser && (userCanPost)&&(<UserDetailTile
             styles={styles}
+            main_color={inner_color}
+            inner_color={deep_color}
             buttonTitle="Watch ADs to get more quotas"
             buttonInfo="Get more quotas to post more photos"
             iconName="videocam"
@@ -387,6 +399,8 @@ export default function UserPage(props){
         )}
         {post_count>0?(<UserDetailTile
           styles={styles}
+          main_color={inner_color}
+          inner_color={deep_color}
           iconName="document"
           quantity={post_count}
           quantityName="Posts"
@@ -397,57 +411,56 @@ export default function UserPage(props){
           onPress={seePosts}
           is_loading_quantity={loading_post_count}
         />):((isMainUser)&&(!userCanPost)&&(author_request_link)&&(
-          <View style={[styles.item_style, styles.totals_view]}>
+          <View style={[styles.item_style, styles.totals_view,inner_color.bkga("aa")]}>
             <TouchableOpacity
-              style={styles.extra_details}
+              style={[styles.extra_details,deep_color.bkg]}
               onPress={()=>{
                 Linking.openURL(author_request_link.link);
               }}>
-              <Ionicons name="person-add-outline" size={20} color="#00f" style={{marginHorizontal:5}}/>
-              <Text style={{
+              <Ionicons name="person-add-outline" size={20} color={deep_color._elm} style={{marginHorizontal:5}}/>
+              <Text style={[{
                 color:"#00f",
                 fontStyle:"italic"
-              }}>{author_request_link.title||"Join Our Authors"}</Text>
+              },deep_color.elm]}>{author_request_link.title||"Join Our Authors"}</Text>
               </TouchableOpacity>
           </View>)
           )}
-        <View style={[styles.item_style, styles.totals_view]}>
+        <View style={[styles.item_style, styles.totals_view,inner_color.bkga("aa")]}>
 
-          <TouchableOpacity style={styles.extra_details}
+          <TouchableOpacity style={[styles.extra_details,deep_color.bkg]}
           onLongPress={()=>{
             copyLink(user_id);
           }}
           >
-            <Ionicons name="clipboard-outline" size={20} style={{marginHorizontal:10}}/>
-            <Text style={{fontSize:15}}>{user_id}</Text>
+            <Ionicons name="clipboard-outline" size={20} style={{marginHorizontal:10}} color={deep_color._elm}/>
+            <Text style={[{fontSize:15},deep_color.elm]}>{user_id}</Text>
           </TouchableOpacity>
+          <Text style={[{fontSize:10,fontStyle:'italic'},inner_color.elm]}> {"Long press to copy "+(isMainUser?"your":"")+" ID"}</Text>
         </View>
-        {!isMainUser&&(<View style={[styles.item_style,styles.details_view]}>
-          <TouchableOpacity style={{
-            backgroundColor:"#fff",
-            margin:5,
+        {!isMainUser&&user?.id&&(<View style={[styles.item_style,styles.details_view,inner_color.bkga("aa")]}>
+          <TouchableOpacity style={[{margin:5,
             flexDirection:'row',
             borderRadius:5,
             padding:5,
-          }} onPress={()=>{
+          },deep_color.bkg]} onPress={()=>{
             Navigation.navigateToMessages(user_id,pageUser_name)
           }}>
-            <Ionicons name="chatbox" size={25}/>
-            <Text style={{
+            <Ionicons name="chatbox" size={25} color={deep_color._elm}/>
+            <Text style={[{
               fontSize:15,
               fontWeight:"500",
               fontStyle:'italic'
-            }}> Send Message </Text>
+            },deep_color.elm]}> Send Message </Text>
           </TouchableOpacity>
         </View>)}
         {isMainUser && (
-          <View style={[styles.item_style, styles.switch_account]}>
+          <View style={[styles.item_style, styles.switch_account,inner_color.bkga("aa")]}>
             <TouchableOpacity
               style={styles.switch_account_button}
               onPress={() => {setShowLoginModal(true);}}
             >
-              <Ionicons name="log-out" color={THEME.textColor0} size={30} />
-              <Text style={{color: THEME.textColor0, fontSize: 15}}>
+              <Ionicons name="log-out" color={inner_color._elm} size={30} />
+              <Text style={{color: inner_color._elm, fontSize: 15}}>
                 Switch Account
               </Text>
             </TouchableOpacity>
@@ -461,7 +474,7 @@ export default function UserPage(props){
 const styles = StyleSheet.create({
   main: {
     flex: 1,
-    backgroundColor: THEME.backColor0,
+    backgroundColor: IBColors.background[ColorIndex.DISTINCT],
   },
   image_view: {
     justifyContent: "center",
@@ -481,6 +494,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-evenly",
   },
+  
+  tagline_text:{fontStyle:"italic",textAlign:'center'},
 
   username: {
     fontSize: 20,
@@ -506,7 +521,7 @@ const styles = StyleSheet.create({
   },
 
   extra_details: {
-    backgroundColor: THEME.textColor0,
+    backgroundColor: IBColors.layer[ColorIndex.EXTRA],
     flexDirection: "row",
     margin: 5,
     padding: 5,
@@ -533,9 +548,10 @@ const styles = StyleSheet.create({
   },
 
   item_style: {
-    backgroundColor: "#0077ccaa",
+    backgroundColor: IBColors.surface_alpha[ColorIndex.EXTRA],
     margin: 2,
     borderRadius: 15,
+    marginBottom:10
   },
 
   background_image: {
@@ -544,4 +560,18 @@ const styles = StyleSheet.create({
     position: "absolute",
     opacity: 0.3,
   },
+  
+  tagline_view:{
+    padding:10,
+    margin:5,
+    borderRadius:10,
+    borderTopLeftRadius:0,
+    borderBottomRightRadius:30
+  },
+  
+  tagline_save_button : {
+    justifyContent:'center',
+    alignItems:'center'
+  }
+  
 });

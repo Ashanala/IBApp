@@ -1,7 +1,7 @@
 import {Text, TouchableOpacity, View} from "react-native";
 import CalendarTile from "./calendar_tile";
 import IBDate from "./calendar_tools/IBDate";
-import {IBTheme} from "../tools/constants/ThemeFile";
+import {IBColors,ColorIndex} from "../IBColors"
 
 export default function CalendarView(
   props = {
@@ -31,9 +31,8 @@ export default function CalendarView(
       date.localday == 2;
 
     const today_color = is_osavoh
-      ? IBTheme.osavohIndicator
-      : IBTheme.dateIndicator;
-    const regular_color = is_osavoh ? IBTheme.osavohIndicator : null;
+      ? props.today_osavoh_bg : props.today_bg;
+    const regular_color = is_osavoh ? props.osavoh_bg: null;
 
     row.push(
       <View
@@ -50,6 +49,7 @@ export default function CalendarView(
             localday={date.localday}
             size={(width * 20) / 350}
             onPress={props.onPress}
+            color={props.color}
           />
         ) : null}
       </View>

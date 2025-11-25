@@ -34,32 +34,34 @@ export default function UserDetailTile(
   const loadingAds = props.loadingAds || false;
   const is_loading_quantity = props.is_loading_quantity || false;
   const hide_button = props.hide_button||false;
+  const main_color = props.main_color;
+  const inner_color = props.inner_color;
   return (
-    <View style={[props_styles.item_style, styles.main]}>
-      <View style={styles.quantity_view}>
+    <View style={[props_styles.item_style, styles.main,props.main_color.bkga("aa")]}>
+      <TouchableOpacity style={[styles.quantity_view,props.inner_color.bkg]} onPress={props.onPress}>
         {is_loading_quantity ? (
           <ActivityIndicator
-            color={xIBTheme.tertiaryColor}
+            color={props.inner_color._elm}
             style={{marginTop: 5}}
           />
         ) : (
-          <Text style={styles.quantity}>{quantity}</Text>
+          <Text style={[styles.quantity,props.inner_color.elm]}>{quantity}</Text>
         )}
-        <Text style={styles.quantity_name}>{quantityName}</Text>
-      </View>
+        <Text style={[styles.quantity_name,inner_color.elm]}>{quantityName}</Text>
+      </TouchableOpacity>
       <View>
         {loadingAds && (
           <View style={styles.loading_view}>
-            <ActivityIndicator size={"small"} color={THEME.textColor0} />
-            <Text style={styles.loading_info}>{loadingInfo}</Text>
+            <ActivityIndicator size={"small"} color={main_color._elm} />
+            <Text style={[styles.loading_info,main_color._elm]}>{loadingInfo}</Text>
           </View>
         )}
-        {!hide_button&&(<TouchableOpacity style={styles.button} onPress={props.onPress}>
-          <Ionicons name={iconName} size={30} />
+        {!hide_button&&(<TouchableOpacity style={[styles.button,inner_color.bkg]} onPress={props.onPress}>
+          <Ionicons name={iconName} size={30} color={inner_color._elm}/>
 
-          <Text style={styles.button_title}>{buttonTitle}</Text>
+          <Text style={[styles.button_title,inner_color.elm]}>{buttonTitle}</Text>
         </TouchableOpacity>)}
-        {!loadingAds && <Text style={styles.button_info}>{buttonInfo}</Text>}
+        {!loadingAds && <Text style={[styles.button_info,main_color.elm]}>{buttonInfo}</Text>}
       </View>
     </View>
   );

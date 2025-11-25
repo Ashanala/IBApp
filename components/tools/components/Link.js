@@ -1,4 +1,4 @@
-import {Linking, Text, TouchableOpacity, View,Image,ActivityIndicator} from "react-native";
+import {Linking, Text, TouchableOpacity, View,Image,ActivityIndicator,StyleSheet} from "react-native";
 import {Ionicons} from "@expo/vector-icons";
 import {IBTheme} from "../constants/ThemeFile";
 import {AppContext} from "../../AppContext"
@@ -6,6 +6,8 @@ import {useContext} from "react"
 import {navigateToUser,navigateToPost} from "../../RootNavigator"
 import {useState,useEffect} from "react"
 import {fb} from "../firebase/IBFirebase"
+import {generateVideoThumbnail} from "../functions/AppTools"
+import {IBColors,ColorIndex,ColorContext,getColorStyle} from "../../IBColors"
 
 export const isHttp = (href) => {
   return href.startsWith("http://") || href.startsWith("https://");
@@ -57,19 +59,18 @@ export const getLogo = (href) => {
   else return "logo-chrome";
 };
 
-export function linkNavigate(){
-  
-}
-
 export default function Link(props = {text: "", href: "", disabled: false}) {
-  
   const default_icon = require("../../../assets/IBApp(512).png")
   const {user} = useContext(AppContext);
+  const {theme} = useContext(ColorContext)
   const logo = getLogo(props.href);
   const [photo,setPhoto] = useState(require("../../../assets/icon.png"));
   const [link_content,setLinkContent] = useState();
   const [loadingLink,setLoadingLink] = useState(false);
+  const [is_video,setIsVideo] = useState(false);
+  
   useEffect(()=>{
+    console.log("HREF : ",props.href);
     setLinkContent(null);
     if(logo=="logo-ibapp"&&isIBLink(props.href)){
       setLoadingLink(true);
@@ -83,7 +84,11 @@ export default function Link(props = {text: "", href: "", disabled: false}) {
             const poster_id = content.data.poster;
             const poster = await fb.getDocument(["users",poster_id]);
             content.data.poster = {id:poster_id,data:poster.data()};
+            const is_video = content?.data?.videos?.length>0;
+            console.log("IS VIDEO : ",is_video);
+           setIsVideo(is_video||false); 
           }
+          
           setPhoto(default_icon)
           setLinkContent(content);
         }
@@ -95,12 +100,25 @@ export default function Link(props = {text: "", href: "", disabled: false}) {
   
   useEffect(()=>{
     if(link_content){
-      const dir = isIBUser(props.href)?link_content?.data?.photo:link_content?.data?.photos[0]?.uri;
+      console.log("Loading Media...");
+      let dir = "";
+      if(isIBUser(props.href)){
+        dir = link_content?.data?.photo;
+      }
+      else{
+        dir = is_video?link_content?.data?.videos[0]?.uri:link_content?.data?.photos[0]?.uri;
+      }
       console.log("Dir : ",dir);
-      fb.requestFileUrl(dir).then((url)=>{
-        const photo_uri = {uri:url};
+      fb.requestFileUrl(dir).then(async(url)=>{
+        let photo_uri = {uri:url};
         if(isIBUser(props.href)){
           link_content.data.photo = photo_uri;
+        }
+        else if(isIBPost(props.href)){
+          if(is_video){
+            photo_uri = {uri:await generateVideoThumbnail(photo_uri.uri)};
+            console.log("THUMB : ",photo_uri);
+          }
         }
         setPhoto(photo_uri);
       }).catch((reason)=>{
@@ -109,31 +127,42 @@ export default function Link(props = {text: "", href: "", disabled: false}) {
     }
   },[link_content])
   
+  const content_color = getColorStyle(theme,[1,0,0]);
+  
+  const main_color = getColorStyle(theme,[1,0]);
+  const link_color = getColorStyle(theme,[1,1,0]);
+  const design_color = getColorStyle(theme,[1,1,0,1])
+  
   const link_view = ()=>{
     if(link_content){
     const is_ib_user = isIBUser(props.href);
     const title = "IB:"+(is_ib_user?link_content?.data?.username:link_content?.data?.poster?.data?.username)||"user";
     const text = (is_ib_user?link_content  ?.data?.info:link_content?.data?.text)||"I use IBApp.";
     return ( <View style={{flexDirection:"row"}}>
+      <View>
         <Image source={photo} style={{width:80,height:80,marginHorizontal:2}}/>
-        <View style={{backgroundColor:"#fffa",marginHorizontal:2,padding:7,borderRadius:5,flex:1}}>
-          <Text>{title}</Text>
-          <Text style={{borderTopWidth:1}} numberOfLines={2}>{text}</Text>
+        {is_video&&(<View style={styles.video_play_icon}>
+          <Ionicons name="play" size={20} color="#fff8"/>
+        </View>)}
+        </View>
+        <View style={{backgroundColor:content_color._bkg,marginHorizontal:2,padding:7,borderRadius:5,flex:1}}>
+          <Text style={content_color.elm}>{title}</Text>
+          <Text style={[{borderTopWidth:1},content_color.elm]} numberOfLines={2}>{text}</Text>
         </View>
       </View>)
     }else{
       if(loadingLink&&props.editing){
-      return (<View style={{backgroundColor:"#08f5"}}>
-        <ActivityIndicator color="#fff"/>
+      return (<View style={content_color.bkg}>
+        <ActivityIndicator color={content_color._elm}/>
       </View>);
       }
     }
   }
-  return (
-    <TouchableOpacity onPress={() => {
+  
+  return ((link_content||!props.hide_invalid)&&(<TouchableOpacity onPress={() => {
           console.log("Ha!");
           if(isIBUser(props.href)){
-            const isMainUser = link_content.id==user.id;
+            const isMainUser = link_content.id==user?.id;
             console.log(link_content.id+" : "+isMainUser);
             navigateToUser(link_content,isMainUser);
           }
@@ -143,32 +172,16 @@ export default function Link(props = {text: "", href: "", disabled: false}) {
           else{
             Linking.openURL(props.href);
           }
-        }} style={{backgroundColor:"#0002",padding:2}}
+        }} style={{backgroundColor:main_color._bkg,padding:2}}
         disabled={props.disabled || ((logo=="logo-ibapp")&&props.editing) || false}>
       {link_view()}
       <View
-        style={{
-          backgroundColor: IBTheme.postTextBackgroundColor,
-          padding: 5,
-          margin: 5,
-          paddingBottom: 0,
-          paddingRight: 0,
-          flexDirection: "row",
-          alignItems: "center",
-          borderRadius: 10,
-        }}
+        style={[styles.text_body,link_color.bkg]}
       >
-        {logo=="logo-ibapp"?(<Image source={default_icon} style={{width:25,height:25,borderRadius:10}}/>):(<Ionicons name={logo} size={25} color="blue" />)}
+        {logo=="logo-ibapp"?(<Image source={default_icon} style={styles.icon_image}/>):(<Ionicons name={logo} size={25} color={link_color._elm} />)}
         <View style={{flex: 1, marginLeft: 2}}>
           <Text
-            style={{
-              color: "blue",
-              fontSize: 15,
-              fontStyle: "italic",
-              borderBottomWidth: 1,
-
-              borderColor: "#eaeaee",
-            }}
+            style={[styles.text,link_color.elm]}
             ellipsizeMode="tail"
             numberOfLines={1}
           >
@@ -176,14 +189,38 @@ export default function Link(props = {text: "", href: "", disabled: false}) {
             {props.text}{" "}
           </Text>
           <View
-            style={{
-              flex: 1,
-              backgroundColor: "#cacaff",
-              borderBottomRightRadius: 20,
-            }}
+            style={[styles.bottom_design,design_color.bkg,{borderColor:design_color._elm}]}
           ></View>
         </View>
       </View>
-    </TouchableOpacity>
-  );
+    </TouchableOpacity>)
+    );
 }
+
+const styles = StyleSheet.create({
+  text_body:{
+          backgroundColor: IBColors.layer[ColorIndex.BASIC],
+          padding: 5,
+          margin: 5,
+          paddingBottom: 0,
+          paddingRight: 0,
+          flexDirection: "row",
+          alignItems: "center",
+          borderRadius: 10,
+        },
+  icon_image:{width:25,height:25,borderRadius:10},
+  text:{
+              color: "blue",
+              fontSize: 15,
+              fontStyle: "italic",
+              borderBottomWidth: 1,
+
+              borderColor: "#eaeaee",
+            },
+  bottom_design:{
+              flex: 1,
+              backgroundColor: IBColors.design[ColorIndex.BASIC],
+              borderBottomRightRadius: 20,
+            },
+  video_play_icon:{position:"absolute",left:0,right:0,top:0,bottom:0,justifyContent:"center",alignItems:"center"}
+})

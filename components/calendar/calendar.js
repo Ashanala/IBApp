@@ -30,7 +30,7 @@ export default function Calendar(
               style={[styles.days_of_week, {width: width}]}
             >
               <Text
-                style={{fontSize: (width * 20) / 50, color: THEME.textColor0}}
+                style={{fontSize: (width * 20) / 50, color: props.color}}
               >
                 {value}
               </Text>
@@ -43,6 +43,10 @@ export default function Calendar(
         width={width * 7}
         today={today}
         onPress={props.onPress}
+        color={props.color}
+        today_bg={props.today_bg}
+        osavoh_bg={props.osavoh_bg}
+        today_osavoh_bg={props.today_osavoh_bg}
       />
     </View>
   );

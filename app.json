@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -34,14 +34,15 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-9335898231322005~3991768860",
+          "androidAppId": "ca-app-pub-9335898231322005~7075224324",
           "iosAppId": ""
         }
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-firebase/crashlytics",
-      "expo-video"
+      "expo-video",
+      "expo-asset"
     ],
     "extra": {
       "eas": {

@@ -1,4 +1,4 @@
-import IBVideoView from './feed/IBVideoView';
+import SearchView from "./nav/SearchView"
 
 import React from "react";
 import {
@@ -13,7 +13,7 @@ import {
 export default function Test() {
   
     return (<View style={{flex: 1}}>
-      <IBVideoView source={"http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}/>
+      <SearchView/>
     </View>);
 }
 const styles = StyleSheet.create({

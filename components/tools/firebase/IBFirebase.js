@@ -16,6 +16,8 @@ import {
   query,
   getDocs,
   increment,
+  startAt,
+  endAt,
 } from "@react-native-firebase/firestore";
 import {getStorage,ref,
   getDownloadURL,
@@ -47,10 +49,8 @@ class Firebase {
   }
 
   async uploadFile(path, filesrc) {
-    /*const data = await fetch(filesrc); // get file data
-    const blob = await data.blob(); // convert file data to blob*/
     const fileRef = ref(this.getStorage(),path);
-    return fileRef.putFile(filesrc); //upload blob to server (at "path")
+    return putFile(fileRef,filesrc); //upload blob to server (at "path")
   }
 
   async requestFileUrl(path) {
@@ -147,51 +147,85 @@ class Firebase {
     return onSnapshot(messageQuery,callback);
   }
   
-  feedQuery(type,data,count,mode){
-    console.log("He he ",type);
+  dateFeedQuery(data,count,mode){
     const posts = this.resolveFieldLink(["posts"]);
-    console.log("Ha : ",type);
     const time = data?.epochMillisec||Date.now();
-    switch(type){
-      case FeedType.CONNECT:{
-        const order = mode==FeedQueryMode.BOTTOM_ADD?"asc":"desc";
-        const rel = mode==FeedQueryMode.BOTTOM_ADD?">":"<";
-        console.log(order,"  ",rel,"  ",time)
-        return query(
-          posts,
-          orderBy("time",order),
-          where("time",rel,time),
-          limit(count));
-      }
-      case FeedType.DAY :{
-        const order = mode==FeedQueryMode.TOP_ADD?"desc":"asc";
-        const rel = mode==FeedQueryMode.TOP_ADD?"<":">";
-        return query(
-          posts,
-          orderBy("time",order),
-          where("time",rel,time),
-          limit(count))
-      }
-      case FeedType.USER :{
-        const order = mode==FeedQueryMode.BOTTOM_ADD?"asc":"desc";
-        const rel = mode==FeedQueryMode.BOTTOM_ADD?">":"<";
-        return query(
-            posts,
-            where("poster","==",data.poster),
-            orderBy("time",order),
-            where("time",rel,time),
-            limit(count)
-          );
-      }
+    const order = mode==FeedQueryMode.TOP_ADD?"desc":"asc";
+    const rel = mode==FeedQueryMode.TOP_ADD?"<":">";
+    return query(
+      posts,
+      orderBy("time",order),
+      where("time",rel,time),
+      limit(count)
+    );
+  }
+  
+  topFeedQuery(data,count){
+    const posts = this.resolveFieldLink(["posts"]);
+    const traffic = data?.traffic||Number.MAX_SAFE_INTEGER;
+    const poster = data?.poster;
+    if(poster){
+      return query(
+        posts,
+        where("poster","==",poster),
+        orderBy("traffic","desc"),
+        where("traffic","<",traffic),
+        limit(count)
+      );
+    }
+    else{
+      return query(
+        posts,
+        orderBy("traffic","desc"),
+        where("traffic","<",traffic),
+        limit(count)
+      );
+    }
+  }
+  
+  latestFeedQuery(data,count){
+    const posts = this.resolveFieldLink(["posts"]);
+    const time = data?.epochMillisec||Date.now();
+    const poster = data?.poster;
+    console.log(" Time : ",time);
+    console.log(" Poster : ",poster);
+    if(poster){
+      console.log("Poster here");
+      return query(
+        posts,
+        where("poster","==",poster),
+        orderBy("time","desc"),
+        where("time","<",time),
+        limit(count)
+      )
+    }
+    else{
+      console.log("No Poster here")
+      return query(
+        posts,
+        orderBy("time","desc"),
+        where("time","<",time),
+        limit(count)
+      );
     }
   }
   
   async onPostSnapshot(type,data,count,callback){
+    const onError = (error)=>{
+      console.log("Get Posts Error : ",error);
+    }
     try{
       console.log("Here : ",type);
-      const postsQuery = this.feedQuery(type,data,count,FeedQueryMode.SNAPSHOT);
-      console.log("Query : ",query);
-      return onSnapshot(postsQuery,callback);
+      switch(type){
+        case FeedType.DAY : 
+        getDocs(this.dateFeedQuery(data,count,FeedQueryMode.INITIAL)).then(callback).catch(onError);
+        break;
+        case FeedType.TOP :
+          getDocs(this.topFeedQuery(data,count)).then(callback).catch(onError);
+          break;
+        default : //FeedType.LATEST
+          getDocs(this.latestFeedQuery(data,count)).then(callback).catch(onError);
+      }
     }
     catch(reason){
       return ()=>{
@@ -225,13 +259,42 @@ class Firebase {
   
   async getMorePosts(type,data,count,mode){
     try{
-      const postsQuery = this.feedQuery(type,data,count,mode);
-      return getDocs(postsQuery);
+      switch(type){
+        case FeedType.DAY:
+          return getDocs(this.dateFeedQuery(data,count,mode));
+        case FeedType.TOP:
+          return getDocs(this.topFeedQuery(data,count));
+        default : //FeedType.LATEST
+          return getDocs(this.latestFeedQuery(data,count));
+      }
     }
     catch(reason){
       this.crash_log(`getMorePosts Error : ${reason}`);
       throw reason;
     }
+  }
+  
+  async getUsers(text,count){
+    const users = this.resolveFieldLink(["users"]);
+    const usersQuery = query(
+        users,
+        where("verified","==",true),
+        orderBy("username_lowercase"),
+        startAt(text.toLowerCase()),
+        endAt(text.toLowerCase()+"\uf8ff"),
+        limit(count)
+      );
+    return getDocs(usersQuery);
+  }
+  
+  async getStarredUsers(user_id,count){
+    const starred_users = this.resolveFieldLink(["users",user_id,"starred"]);
+    const starredUsersQuery = query(
+        starred_users,
+        orderBy("time","desc"),
+        limit(count)
+      );
+    return getDocs(starredUsersQuery);
   }
   
   async incrementField(field_link,doc_field,amount){
@@ -244,6 +307,21 @@ class Firebase {
   async crash_log(text){
     this.getCrashlytics().log(text);
     console.log(text);
+  }
+  
+  async getTheme(device_id){
+    const device_ref = this.resolveFieldLink(["tokens",device_id]);
+    const device_doc = await getDoc(device_ref);
+    const data = device_doc.data();
+     console.log("Device Data : ",data);
+    if(data.theme){
+      const name = data.theme;
+      const theme_ref = this.resolveFieldLink(["themes",name]);
+      const theme_doc = await getDoc(theme_ref);
+      const theme = theme_doc.data();
+      return theme?.theme;
+    }
+    return null;
   }
 }
 

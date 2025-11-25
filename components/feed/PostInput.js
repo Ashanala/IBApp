@@ -23,6 +23,7 @@ import LinkCreatorView from "./LinkCreatorView";
 import Link from "../tools/components/Link";
 import {AppContext} from "../AppContext"
 import {loadRewardAd} from "../tools/AdTools"
+import {IBColors,ColorIndex,ColorContext,getColorStyle} from "../IBColors"
 export default function PostInput(
   props = {
     user_details: {
@@ -46,7 +47,8 @@ export default function PostInput(
   const [post_text, setPostText] = useState("");
   const [post_links, setPostLinks] = useState([]);
   const [showLinkCreator, setShowLinkCreator] = useState(false);
-  const {user,uploading_progress,setUploadingProgress,setUploadPost} = useContext(AppContext)
+  const {user,uploading_progress,setUploadingProgress,uploadPostRef,setShouldUploadPost} = useContext(AppContext)
+  const {theme} = useContext(ColorContext)
   const quota_count = user?.data?.quota?.count||0;
   
   const correctMediaSrc = (media_url) => {
@@ -126,7 +128,7 @@ export default function PostInput(
         const doc = await fb.addDocument(["posts"],post);
         console.log("DOC : ",doc);
         console.log("Doc ID : ",doc.id);
-        let new_quota_count =(quota_count||0) - (post.photos.length||0) - (post.links.length||0);
+        let new_quota_count =(quota_count||0) - (post.photos.length||0) - (post.links.length||0) - ((2*post.videos.length||0));
         new_quota_count = new_quota_count > 0 ? new_quota_count : 0;
         console.log("NEW QUOTA COUNT : ",new_quota_count)
         await fb.updateDocument(["users",user.id],{quota:{time:Date.now(),count:new_quota_count}});
@@ -244,12 +246,11 @@ export default function PostInput(
   }
   
   const checkQuotaFor = (x)=>{
-    return quota_count >
-      post_photos.length + post_links.length + post_videos.length + (x - 1);
+    return (getRemainingQuota() - (x - 1)) > 0;
   }
   
   const getRemainingQuota = () => {
-    return (quota_count - post_links.length - post_photos.length - post_videos.length);
+    return (quota_count - post_links.length - post_photos.length - (2*post_videos.length));
   }
                 
   const normalized_progress = (value)=>{
@@ -260,6 +261,9 @@ export default function PostInput(
     uploading_progress*100
   )+"%";
 
+  const main_color = getColorStyle(theme,[0]);
+  const inner_color = getColorStyle(theme,[0,0])
+  const input_color = getColorStyle(theme,[0,1]);
   return (
     <View style={styles.main} pointerEvents={uploading_progress>0 ? "none" : "auto"}>
       <Modal
@@ -270,6 +274,7 @@ export default function PostInput(
         }}
       >
         <LinkCreatorView
+          theme = {theme}
           onCancel={() => {
             setShowLinkCreator(false);
           }}
@@ -280,14 +285,14 @@ export default function PostInput(
           }}
         />
       </Modal>
-      {loading && <ActivityIndicator color="white" />}
+      {loading && <ActivityIndicator color={main_color._elm} />}
       <ScrollView>
         <View style={styles.selections}>
           {post_videos.length>0?(
           <IBVideoView
             source={post_videos[0]}/>):(<ImageView
             source={post_photos}
-            style={styles.image_view}
+            style={[styles.image_view,{borderColor:main_color._elm}]}
             borderWidth={2}
             padding={2}
             onSelect={(index) => {}}
@@ -300,7 +305,7 @@ export default function PostInput(
               }}
               style={{margin: 10}}
             >
-              <Ionicons name="remove-circle-outline" size={30} color="white" />
+              <Ionicons name="remove-circle-outline" size={30} color={main_color._elm} />
             </TouchableOpacity>
           )}
         </View>
@@ -317,7 +322,7 @@ export default function PostInput(
               >
                 <TouchableOpacity
                   style={{
-                    backgroundColor: xIBTheme.tertiaryColor,
+                    backgroundColor: inner_color.bkg,
                     borderRadius: 5,
                   }}
                   onPress={() => {
@@ -335,7 +340,7 @@ export default function PostInput(
                   <Ionicons
                     name="close"
                     size={30}
-                    color={IBTheme.defaultTextColor}
+                    color={inner_color._elm}
                   />
                 </TouchableOpacity>
                 <View style={{flex: 1}}>
@@ -349,19 +354,19 @@ export default function PostInput(
         <View>
           <View style={{
               width:percentage_progress,
-              backgroundColor:"#fff",
+              backgroundColor:input_color._bkg,
               height:5,
             }}>
             </View>
           <View style={styles.uploading_view}>
-            <Text style={styles.uploading_view_text}>Uploading Post</Text>
-            <ActivityIndicator size={"small"} color="white" />
+            <Text style={[styles.uploading_view_text,main_color.elm]}>Uploading Post</Text>
+            <ActivityIndicator size={"small"} color={main_color._elm} />
           </View>
         </View>
         ) : (
           <View
             style={{
-              backgroundColor: IBTheme.postBackgroundColor,
+              backgroundColor: input_color._bkg,
               paddingTop: 5,
               paddingLeft: 5,
             }}
@@ -378,23 +383,23 @@ export default function PostInput(
                 <Ionicons
                   name="image"
                   size={40}
-                  color={IBTheme.postTextColor}
+                  color={input_color._elm}
                 />
               </TouchableOpacity>)}
-              {post_videos.length>=post_photos.length&&(<TouchableOpacity
+              {post_videos.length>=post_photos.length&&(user?.data?.level>1)&&(<TouchableOpacity
                 style={styles.load_image_icon}
                 onPress={()=>openMediaPicker(true)}
               >
                 <Ionicons
                   name="videocam"
                   size={40}
-                  color={IBTheme.postTextColor}
+                  color={input_color._elm}
                 />
               </TouchableOpacity>)}
               <TouchableOpacity
                 styles={styles.load_image_icon}
                 onPress={() => {
-                  checkQuotaFor(1);
+                  const canAddLink = checkQuotaFor(1);
                   if (canAddLink) {
                     console.log("Link Pressed!");
                     setShowLinkCreator(true);
@@ -403,7 +408,7 @@ export default function PostInput(
                   }
                 }}
               >
-                <Ionicons name="link" size={40} color={IBTheme.postTextColor} />
+                <Ionicons name="link" size={40} color={input_color._elm} />
               </TouchableOpacity>
               <View style={styles.quota_view}>
                 <View style={styles.quota_text_view}>
@@ -415,9 +420,9 @@ export default function PostInput(
             </View>
             <View style={styles.postInputView}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput,input_color.elm]}
                 placeholder="Post Something ..."
-                placeholderTextColor={IBTheme.postTextColor}
+                placeholderTextColor={input_color._elm}
                 multiline
                 value={post_text}
                 onChangeText={setPostText}
@@ -438,11 +443,12 @@ export default function PostInput(
                     setPostPhotos([]);
                     setPostVideos([]);
                     setPostLinks([]);
-                    setUploadPost(uploadPost);
+                    setShouldUploadPost(true);
+                    uploadPostRef.current = uploadPost;
                   }
                 }}
               >
-                <Ionicons name="send" size={40} color={IBTheme.postTextColor} />
+                <Ionicons name="send" size={40} color={input_color._elm} />
               </TouchableOpacity>
             </View>
           </View>
@@ -466,7 +472,7 @@ const styles = StyleSheet.create({
     borderColor: IBTheme.postTextColor,
     padding: 5,
     borderRadius: 10,
-    color: IBTheme.postTextColor,
+    color: IBColors.elements[ColorIndex.DISTINCT],
     maxHeight:200
   },
   selections: {flexDirection: "row", justifyContent: "space-between"},
@@ -476,7 +482,7 @@ const styles = StyleSheet.create({
     margin: 5,
   },
   uploading_view: {flexDirection: "row", justifyContent: "space-around"},
-  uploading_view_text: {color: "white", fontSize: 18, fontStyle: "italic"},
+  uploading_view_text: {color: IBColors.elements[ColorIndex.BASIC], fontSize: 18, fontStyle: "italic"},
   load_image_icon: {marginHorizontal: 5},
   quota_view: {
     position: "absolute",
@@ -488,14 +494,14 @@ const styles = StyleSheet.create({
   quota_text_view: {
     minWidth: 14,
     minHeight: 14,
-    backgroundColor: "blue",
+    backgroundColor: IBColors.surface[ColorIndex.EXTRA],
     borderRadius: 7,
   },
   quota_text_view_text: {
     fontSize: 12,
     fontStyle: "italic",
     fontWeight: "bold",
-    color: "white",
+    color: IBColors.elements[ColorIndex.BASIC],
     textAlign: "center",
   },
   send_button: {marginHorizontal: 5},

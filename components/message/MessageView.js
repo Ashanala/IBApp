@@ -7,7 +7,8 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
-  ToastAndroid
+  ToastAndroid,
+  StyleSheet
 } from "react-native";
 import React,{useContext,useState,useEffect,useRef} from "react";
 import {AppContext} from "../AppContext"
@@ -18,9 +19,11 @@ import {generateColor} from "../tools/functions/Tools"
 import {BannerAd, BannerAdSize} from "react-native-google-mobile-ads";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {Ionicons} from "@expo/vector-icons"
+import {IBColors,ColorIndex,ColorContext,getColorStyle} from "../IBColors"
 
 export default function MessageView(props){
   const {user,setShowNavHandle} = useContext(AppContext);
+  const {theme} = useContext(ColorContext)
   console.log("Hey World!")
   const [messages,setMessages] = useState([]);
   const [message_count,setMessageCount] = useState(10);
@@ -97,40 +100,27 @@ export default function MessageView(props){
     }
   },[user])
   
-  return (<View style={{
-    backgroundColor:"#0af",
-    flex:1,
-  }}>
+  const main_color = getColorStyle(theme)
+  const header_color = getColorStyle(theme,[0]);
+  const ext_color = getColorStyle(theme,[1])
+  
+  return (<View style={[styles.main,main_color.bkg,{borderColor:main_color._elm}]}>
     <SafeAreaView
-      style={{justifyContent:"center",alignItems:"center"}}
+      style={styles.banner_ad}
       edges={["left", "right", "top"]}
     >
-      <BannerAd unitId={test_banner_ad_id} size={BannerAdSize.BANNER} />
+      <BannerAd unitId={banner_ad_id} size={BannerAdSize.BANNER} />
     </SafeAreaView>
-    <View style={{
-      height:50,
-      justifyContent: 'space-between',
-      alignItems:"center",
-      backgroundColor:"#08f",
-      flexDirection: 'row',
-    }}>
-      <Text style={{
-        fontSize:20,
-        fontWeight:'600',
-        color:"#fff",
-      }}> Messages </Text>
-      {sendingMessage&&(<ActivityIndicator style={{marginRight:5}} color="#fff" />)}
+    <View style={[styles.header,header_color.bkg]}>
+      <Text style={[styles.header_text,header_color.elm]}> Messages </Text>
+      {sendingMessage&&(<ActivityIndicator style={{marginRight:5}} color={header_color._elm} />)}
     </View>
     {!loading_messages?(messages.length>0?(
     <ScrollView ref={scrollRef} onTouchStart={()=>{setRecepient(undefined)}}>
-      <TouchableOpacity style={{
-        justifyContent: 'center',
-        alignItems:'center',
-        backgroundColor:"#228",
-      }} onPress={()=>{
+      <TouchableOpacity style={[styles.see_more,ext_color.bkg]} onPress={()=>{
         setMessageCount((msg_count)=>msg_count+5);
       }}>
-        <Text style={{color:"#fff"}}> See more...</Text>
+        <Text style={{color:ext_color._elm}}> See more...</Text>
       </TouchableOpacity>
       {
         messages.map((message,index)=>{
@@ -141,32 +131,18 @@ export default function MessageView(props){
           }}/>
         }).reverse()
       }
-    </ScrollView>):(<View style={{
-      justifyContent: 'center',
-      alignItems:'center',
-      flex:1,
-    }}>
-      <Text style={{
-        color:"#fff",
-        fontWeight:"500"
-      }}> No Messages</Text>
+      <View style={{height:50}}/>
+    </ScrollView>):(<View style={styles.no_message}>
+      <Text style={[styles.no_message_text,main_color.elm]}> No Messages</Text>
     </View>)):(
-    <View style={{flex:1,justifyContent:"center",alignItems:"center"}}>
-      <ActivityIndicator color="#fff"/>
-      <Text style={{color:"#fff",fontWeight:"500",fontStyle:"italic"}}>Loading Messages...</Text>
+    <View style={styles.loading_message}>
+      <ActivityIndicator color={main_color._elm}/>
+      <Text style={[styles.loading_message_text,main_color.elm]}>Loading Messages...</Text>
     </View>)}
     {recepient?.id&&(<View style={{}}>
       <Link href={recepient.id||""} text="See Profile Page"/>
-      <View style={{flexDirection:'row',alignItems:'center',marginTop:5,backgroundColor:"#28c",paddingBottom:5}}>
-      <TextInput style={{
-        flex:1,
-        borderWidth:1,
-        borderRadius:5, 
-        padding:10,
-        margin:5,
-        borderColor:"#fff",
-        maxHeight:100,
-      }} multiline onChangeText={setMessageText}/>
+      <View style={[styles.input_view,ext_color.bkg]}>
+      <TextInput style={[styles.input,{borderColor:ext_color._elm,color:ext_color._elm}]} multiline onChangeText={setMessageText}/>
       <TouchableOpacity onPress={()=>{
         if(message_text!=""){
         const msg = message_text;
@@ -193,8 +169,65 @@ export default function MessageView(props){
           });
         }
       }}>
-        <Ionicons name="send" color="#0c8" size={50}/>
+        <Ionicons name="send" color={ext_color._elm} size={50}/>
       </TouchableOpacity>
     </View></View>)}
   </View>)
 }
+
+const styles = StyleSheet.create({
+  main :{
+    flex:1,
+  },
+  banner_ad:{
+    justifyContent:"center",
+    alignItems:"center"
+  },
+  header : {
+      height:50,
+      justifyContent: 'space-between',
+      alignItems:"center",
+      flexDirection: 'row',
+      borderBottomWidth: 2,
+    },
+  header_text:{
+        fontSize:20,
+        fontWeight:'600',
+      },
+  see_more : {
+        justifyContent: 'center',
+        alignItems:'center',
+        },
+  no_message : {
+      justifyContent: 'center',
+      alignItems:'center',
+      flex:1,
+    },
+  no_message_text:{
+        fontWeight:"500"
+      },
+  loading_message:{
+    flex:1,
+    justifyContent:"center",
+    alignItems:"center"
+  },
+  loading_message_text:{
+    fontWeight:"500",
+    fontStyle:"italic"
+  },
+  input_view:{
+    flexDirection:'row',
+    alignItems:'center',
+    marginTop:5,
+    paddingBottom:5
+  },
+  input : {
+        flex:1,
+        borderWidth:1,
+        borderRadius:5, 
+        padding:10,
+        margin:5,
+        borderColor:"#fff",
+        maxHeight:100,
+      }
+})

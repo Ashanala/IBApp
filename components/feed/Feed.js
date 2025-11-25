@@ -9,7 +9,8 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Dimensions
+  Dimensions,
+  FlatList
 } from "react-native";
 import THEME from "../tools/constants/THEME";
 import PostTile from "./post_tile";
@@ -22,28 +23,29 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import CONST from "../tools/constants/CONST";
 import {loadInterstitialAd} from "../tools/AdTools"
 import {feedQuery} from "../tools/functions/Tools";
-import FeedType,{FeedQueryMode,getFeedTypeReverse} from "./FeedType";
+import FeedType,{FeedQueryMode} from "./FeedType";
 import {IBTheme} from "../tools/constants/ThemeFile";
 import PostInput from "./PostInput";
 import {Ionicons} from "@expo/vector-icons";
 import {AppContext} from "../AppContext";
-  
-  export default function Feed(props){
-    const {user,setShowNav} = useContext(AppContext);
-    const {type,data} = props.route.params;
-    const [post_loading,setPostLoading] = useState(true);
-    const [postLoad_error,setPostLoadError] = useState(false);
-    const [adding_new_posts,setAddingNewPosts] = useState(false);
-    const [post_list,setPostList] = useState([]);
-    const [show_postInput,setShowPostInput] = useState(false);
+import {IBColors,ColorIndex,ColorContext,getColorStyle} from "../IBColors"
+
+export default function Feed(props){
+  const {user,setShowNav} = useContext(AppContext);
+  const {theme} = useContext(ColorContext)
+  const {type,data} = props.route.params;
+  const [post_loading,setPostLoading] = useState(true);
+  const [postLoad_error,setPostLoadError] = useState(false);
+  const [adding_new_posts,setAddingNewPosts] = useState("NONE"); //[NONE,ADDING,FINISHED]
+  const [post_list,setPostList] = useState([]);
+  const [show_postInput,setShowPostInput] = useState(false);
     
   const loadInitial = () => {
     const size = 5;
     console.log("DATA : ",data);
     console.log("TYPE : ",type);
-    const reverse = getFeedTypeReverse(type);
     return fb.onPostSnapshot(type,data,5,(snapshot) => {
-      console.log("PoSt List : ",post_list);
+      ////console.log("PoSt List : ",post_list);
       const postLoadError = false;
       setPostList((old_list)=>{
         let new_list = [...old_list];
@@ -52,9 +54,6 @@ import {AppContext} from "../AppContext";
           switch (value.type) {
             case "added":
               if(!new_list.find(item=> (item.id==post.id))){
-                if(reverse)
-                  new_list.unshift(post);
-                else
                   new_list.push(post);
               }
               break;
@@ -63,9 +62,9 @@ import {AppContext} from "../AppContext";
               break;
           }
         });
-        console.log("Post List : ",post_list);
-        console.log("Old List : ",old_list);
-        console.log("List : ", new_list);
+        //console.log("Post List : ",post_list);
+        //console.log("Old List : ",old_list);
+        //console.log("List : ", new_list);
         if(post_loading)
         setPostLoading(false);
         return new_list;
@@ -75,45 +74,49 @@ import {AppContext} from "../AppContext";
 
   useEffect(() => {
     const unsubscribe_post = loadInitial();
-    const unsubscribe_ad=loadInterstitialAd();
+    const unsubscribe_ad  = loadInterstitialAd();
+    
+    if(user?.id&&data?.poster){
+      fb.updateDocument(["users",user.id,"starred",data.poster],{time:Date.now()}).then(()=>{
+        console.log("Updated User Starred!");
+      }).catch((error)=>{
+        console.log("Cannot Update User Starred : ",error);
+      });
+    }
     return ()=>{
       unsubscribe_ad();
       if(typeof unsubscribe_post === 'function')
       unsubscribe_post();
     }
   },[]);
-
-  const postList = () => {
-    const length = post_list.length;
-    return post_list.map((value, index, array) => {
-      const post = value.data;
-      return (
-        <View key={value.id} style={{margin: 5}}>
+  
+  const renderItem = ({item,index})=>{
+    const value = item;
+    return (<View style={{margin: 5}}>
           <PostTile
+            theme = {theme}
             post = {value}
-            disable={adding_new_posts}
+            disable={adding_new_posts!="ADDING"}
             navigation={props.navigation}
             user = {user}
             disableUserPicture={type == FeedType.USER}
-            key={value.id + "Post"}
             onDelete={() => {
-              post_list.splice(index, 1);
-              setPostList(post_list);
+              const updatedList = post_list.filter((_,i)=>i!=index);
+              setPostList(updatedList);
             }}
           />
-        </View>
-      );
-    });
-  };
+        </View>);
+  }
 
   const addNewPosts = (top) => {
-    if (!adding_new_posts) {
-      setAddingNewPosts(true);
+    if (top||adding_new_posts=="NONE") {
+      setAddingNewPosts("ADDING");
       const top_post_time = post_list[0].data.time;
+      const bottom_post = post_list[post_list.length - 1].data;
       const bottom_post_time =
-      post_list[post_list.length - 1].data.time;
-      const new_data = {...data,epochMillisec : top?top_post_time:bottom_post_time};
-      console.log("New Data : ",new_data);
+      bottom_post.time;
+      const new_data = {...data,epochMillisec : top?top_post_time:bottom_post_time,traffic:bottom_post.traffic};
+      //console.log("New Data : ",new_data);
       fb.getMorePosts(type,new_data,5,top?FeedQueryMode.TOP_ADD:FeedQueryMode.BOTTOM_ADD).then((value) => {
         if (!value.empty) {
           value.docs.map((value, index, array) => {
@@ -127,23 +130,27 @@ import {AppContext} from "../AppContext";
             }
               
             });
+            setAddingNewPosts("NONE");
         } else {
           console.log("Empty Query");
+          setAddingNewPosts("FINISHED")
         }
-        setAddingNewPosts(false);
         setPostList(post_list);
       })
       .catch((reason) => {
-        setAddingNewPosts(false);
+        setAddingNewPosts("NONE");
       });
     }
   };
-
+  
+  const main_color = getColorStyle(theme);
+  const content_color = getColorStyle(theme,[1]);
+  
   const addNewPostsView = (top, key) => {
     return post_list.length > 0 ? (
       <TouchableOpacity
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: content_color._bkg,
           justifyContent: "center",
           alignItems: "center",
           padding: 5,
@@ -157,29 +164,32 @@ import {AppContext} from "../AppContext";
         }}
         key={key}
       >
-        <Text style={{fontStyle: "italic", fontWeight: "600"}}>
+        <Text style={{fontStyle: "italic", fontWeight: "600",color:content_color._elm}}>
           See more...
         </Text>
-        {adding_new_posts && <ActivityIndicator color={"blue"} />}
+        {adding_new_posts=="ADDING" && <ActivityIndicator color={content_color._elm} />}
       </TouchableOpacity>
     ) : null;
   };
   return (
     <View
-      style={styles.main}
+      style={[styles.main,main_color.bkg]}
       onTouchStart={()=>{setShowNav(false)}}
       pointerEvents={post_loading ? "none" : "auto"}
     >
       {!post_loading &&
         (post_list.length > 0 ? (
-          <ScrollView
-            style={{height: "100%"}}
-            children={[addNewPostsView(true, "TOP")]
-              .concat(<View 
-              key="posts_view"
-              style={{
-                minHeight:Dimensions.get("window").height-100}}>{postList()}</View>)
-              .concat([addNewPostsView(false, "BOTTOM")])}
+          <FlatList
+            data={post_list}
+            keyExtractor={(item)=>item.id}
+            renderItem={renderItem}
+            ListHeaderComponent={type==FeedType.DAY&&addNewPostsView(true)}
+            ListFooterComponent={(adding_new_posts!="FINISHED")&&addNewPostsView(false)}
+            contentContainerStyle={{paddingBottom:5}}
+            onEndReached={()=>{
+              addNewPosts(false);
+            }}
+            onEndReachedThreshold={0.5}
           />
         ) : (
           <View
@@ -190,20 +200,12 @@ import {AppContext} from "../AppContext";
             </Text>
           </View>
         ))}
-      {!post_loading &&
-        type == FeedType.CONNECT && (
-          <View>
-            {show_postInput && (
-              <PostInput user_details={user} />
-            )}
-          </View>
-        )}
       {post_loading && (
         <View
-          style={styles.post_loading}
+          style={[styles.post_loading,content_color.bkg]}
         >
-          <ActivityIndicator color="white" size="large" />
-          <Text style={{color: "white"}}>Loading posts ...</Text>
+          <ActivityIndicator color={content_color._elm+"33"} size="large" />
+          <Text style={{color: content_color._elm}}>Loading posts ...</Text>
         </View>
       )}
     </View>
@@ -212,7 +214,7 @@ import {AppContext} from "../AppContext";
 
 const styles = StyleSheet.create({
   main: {
-    backgroundColor: IBTheme.backgroundColor,
+    backgroundColor: IBColors.background[ColorIndex.BASIC],
     flex: 1,
   },
   post_loading:{
@@ -223,7 +225,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#00000033",
+    backgroundColor: IBColors.background_alpha[ColorIndex.BASIC],
   },
   no_posts:{
     position: "absolute",
@@ -231,7 +233,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: "red",
+    backgroundColor: IBColors.alert[ColorIndex.BASIC],
     justifyContent: "center",
     alignItems: "center",
   }

@@ -13,6 +13,7 @@ import {IBTheme, xIBTheme} from "../tools/constants/ThemeFile";
 import {Ionicons} from "@expo/vector-icons";
 import Link, {getLogo, isHttp, isValidDomainOf} from "../tools/components/Link";
 import {useEffect, useState} from "react";
+import {IBColors,ColorIndex,getColorStyle} from "../IBColors"
 
 export default function LinkCreatorView(
   props = {onCancel: () => {}, onSuccess: () => {}}
@@ -21,6 +22,8 @@ export default function LinkCreatorView(
   const [href, setHref] = useState("");
   const [checkingLink, setCheckingLink] = useState(false);
   const [isValidLink, setIsValidLink] = useState(false);
+  const theme = props.theme;
+  
 
   useEffect(() => {
     if (checkingLink) {
@@ -48,17 +51,20 @@ export default function LinkCreatorView(
     }
   }, [checkingLink]);
 
+  const main_color = getColorStyle(theme,[0,0]);
+  const inner_color = getColorStyle(theme,[0,0,0])
   return (
-    <View style={styles.main}>
+    <View style={[styles.main,{backgroundColor:main_color._bkg+"33"}]}>
       <TouchableOpacity style={styles.cancel} onPress={props.onCancel} />
-      <View style={styles.body}>
+      <View style={[styles.body,main_color.bkg]}>
         <View style={styles.title_view}>
-          <Ionicons name="link" size={40} color={IBTheme.defaultTextColor} />
-          <Text style={styles.title}>Create Link</Text>
+          <Ionicons name="link" size={40} color={main_color._elm} />
+          <Text style={[styles.title,main_color.elm]}>Create Link</Text>
         </View>
         <TextInput
-          style={styles.link_input}
+          style={[styles.link_input,main_color.elm,{borderColor:main_color._elm}]}
           placeholder="Enter Link"
+          placeholderTextColor={main_color._elm+"55"}
           value={href}
           onFocus={(e) => {
             console.log("Focus");
@@ -67,12 +73,12 @@ export default function LinkCreatorView(
           onEndEditing={() => {
             setCheckingLink(true);
           }}
-          cursorColor={IBTheme.defaultTextColor}
+          cursorColor={main_color._elm}
         />
         <TextInput
-          style={styles.link_text_input}
+          style={[styles.link_text_input,main_color.elm,{borderColor:main_color._elm}]}
           value={text}
-          cursorColor={IBTheme.defaultTextColor}
+          cursorColor={main_color._elm}
           onEndEditing={() => {
             setCheckingLink(true);
           }}
@@ -81,15 +87,15 @@ export default function LinkCreatorView(
         <Link text={text} href={href} disabled={!isValidLink} editing={true}/>
         <View style={styles.bottom}>
           {checkingLink ? (
-            <ActivityIndicator color={IBTheme.defaultTextColor} />
+            <ActivityIndicator color={main_color._elm} />
           ) : isValidLink ? (
             <Ionicons
               name="checkmark"
               size={30}
-              color={IBTheme.defaultTextColor}
+              color={main_color._elm}
             />
           ) : (
-            <Ionicons name="close" size={30} color={"#ff22aa"} />
+            <Ionicons name="close" size={30} color={main_color._elm+"aa"} />
           )}
           <TouchableOpacity
             style={[
@@ -97,6 +103,7 @@ export default function LinkCreatorView(
               {
                 opacity: isValidLink ? 1 : 0.5,
               },
+              inner_color.bkg
             ]}
             disabled={!isValidLink}
             onPress={() => {
@@ -104,7 +111,7 @@ export default function LinkCreatorView(
               props.onSuccess(link);
             }}
           >
-            <Text style={{color: "white"}}>Done</Text>
+            <Text style={inner_color.elm}>Done</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -118,11 +125,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flex: 1,
     alignItems: "center",
-    backgroundColor: "#000000aa",
+    backgroundColor: IBColors.background_alpha[ColorIndex.BASIC],
   },
   cancel: {flex: 1, width: "100%"},
   body: {
-    backgroundColor: xIBTheme.tertiaryColor,
+    backgroundColor: IBColors.surface[ColorIndex.BASIC],
     justifyContent: "center",
     borderRadius: 10,
   },
@@ -159,7 +166,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   done_button: {
-    backgroundColor: "blue",
+    backgroundColor: IBColors.layer[ColorIndex.DISTINCT],
     padding: 10,
     marginHorizontal: 10,
     marginVertical: 5,

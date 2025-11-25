@@ -1,3 +1,4 @@
+import NavLink from './NavLink';
 
 import {
   TouchableOpacity,
@@ -22,18 +23,7 @@ export default function UserPageLink(props){
   const [show_login_modal,setShowLoginModal] = useState(false);
   
   return (
-    <TouchableOpacity
-      style={styles.main}
-      onPress={()=>{
-        if(user?.data?.verified){
-          navigateToUser(user,true);
-        }
-        else{
-          sendEmailVerification(true,()=>{
-            setShowLoginModal(true);
-          });
-        }
-      }}>
+    <View>
       <Modal
           visible={show_login_modal}
           transparent
@@ -43,6 +33,7 @@ export default function UserPageLink(props){
         >
           <LoginView
             navigation={props.navigation}
+            theme = {props.theme}
             onSuccess={()=>{
               setShowLoginModal(false);
             }
@@ -55,7 +46,22 @@ export default function UserPageLink(props){
             }}
           />
         </Modal>
-        {props.loading_user?(<ActivityIndicator color="#22f" />):(user?.data?(
+    {user?.data?(
+    <TouchableOpacity
+      style={styles.main}
+      disabled={!user}
+      onPress={()=>{
+        if(user?.data?.verified){
+            navigateToUser(user,true);
+        }
+        else{
+          sendEmailVerification(true,()=>{
+            console.log("LOG IN CALLED!");
+            setShowLoginModal(true);
+          });
+        }
+      }}>
+        {props.loading_user?(<ActivityIndicator color="#22f" />):(
         <View>
           <Image 
             source={
@@ -76,37 +82,32 @@ export default function UserPageLink(props){
             )
           }
         </View>
-        ):(
-        <TouchableOpacity
-          style={{
-            backgroundColor:"#22f",
-            justifyContent:"center",
-            alignItems:"center",
-            borderRadius:25,
-            width:50,
-            height:50,
-          }}
+        )}
+      </TouchableOpacity>):(
+        <NavLink 
+          theme={props.theme}
           onPress={()=>{
             setShowLoginModal(true);
           }}
+          icon="log-in"
         >
-          <Ionicons name="log-in" color="#fff" size={40}/>
-        </TouchableOpacity>))}
-    </TouchableOpacity>
+                
+        </NavLink>)}
+        </View>
   );
 }
 
 const styles = StyleSheet.create({
   main:{
-    width:50,
-    height:50,
+    width:45,
+    height:45,
     justifyContent:"center",
     alignItems:"center",
   },
   image:{
-    width:50,
-    height:50,
-    borderRadius:25,
+    width:45,
+    height:45,
+    borderRadius:22.5,
   },
   unverified_tag : {
     position:"absolute",

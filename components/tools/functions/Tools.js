@@ -1,4 +1,3 @@
-import FeedType from "../../feed/FeedType";
 
 export function millisecToString(millisec) {
   if (millisec) {
@@ -146,47 +145,4 @@ export function starColor(value) {
   else if (value < 5110) return "#000000"; //black
   else if (value < 10230) return "#0000ff"; //blue
   else return "#d4af37";
-}
-
-export function feedQuery(
-  params = {
-    type: "",
-    min: 0,
-    firestore: "",
-    data: {},
-    get_mode: false,
-  }
-) {
-  const type = params.type || FeedType.CONNECT;
-  const min = params.min || 5;
-  const epochMillisec = params.data?.epochMillisec || 0;
-  const poster = params.data?.poster || "";
-  const get_mode = params.get_mode || false;
-  let query = params.firestore.collection("posts");
-  let reverse = true;
-  switch (type) {
-    case FeedType.CONNECT:
-      if (!get_mode) {
-        query = query.orderBy("time", "desc").limit(min);
-        reverse = true;
-        console.log("Without Order Connect");
-      }
-      break;
-    case FeedType.DAY:
-      if (!get_mode) {
-        query = query.where("time", ">=", epochMillisec);
-        query = query.orderBy("time", "asc").limit(min);
-        reverse = false;
-      }
-      break;
-    case FeedType.USER:
-      query = query.where("poster", "==", poster);
-      if (!get_mode) {
-        query = query.orderBy("time", "desc").limit(min);
-        reverse = true;
-        console.log("Without order User : ", poster);
-      }
-      break;
-  }
-  return {query, reverse};
 }

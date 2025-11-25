@@ -7,6 +7,7 @@ import {navigateToMessages} from "../../RootNavigator"
 export default function NotifPageLink(props){
   const {user} = useContext(AppContext);
   return (<NavLink 
+  theme={props.theme}
     icon="chatbox" 
     tip={user?.data?.notifs} 
     tip_condition={user?.data?.notifs>0} 

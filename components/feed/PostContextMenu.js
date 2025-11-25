@@ -1,3 +1,4 @@
+import IBVideoView from './IBVideoView';
 import {
   ActivityIndicator,
   Alert,
@@ -25,38 +26,56 @@ import {copyLink} from "../tools/functions/AppTools";
 import {useIsFocused} from "@react-navigation/native";
 import {fb} from "../tools/firebase/IBFirebase";
 import {loadInterstitialAd} from "../tools/AdTools"
+import {IBColors,ColorIndex,getColorStyle} from "../IBColors"
 
-export default function PostDetails(props = {photos: []}) {
+export default function PostDetails(props = {photos: [],videos:[]}) {
+  const theme = props.theme;
   const post_link = "IB::"+props.post?.id;
   const photos = props.post?.data?.photos;
+  const videos = props.post?.data?.videos;
   const window_height = Dimensions.get("window").height;
+  const window_width = Dimensions.get("window").width;
+  
   const [current_photo_index, setCurrentPhotoIndex] = useState(0);
+  
   const inner_styles = StyleSheet.create({
     photo_page: {
       justifyContent: "center",
       alignItems: "center",
     },
   });
-  const minImageHeight = photos.length>0?200:0;
-  const getPhotoHeight = (photo) => {
-    if (photo) {
-      const aspect_ratio = photo.height ? photo.height / photo.width : 1;
-      const height = Dimensions.get("screen").width * aspect_ratio;
+  
+  const hasMedia = ()=>{
+    return (videos?.length>0)||(photos?.length>0);
+  }
+  
+  const hasVideos = ()=>{
+      const has =  videos?.length>0;
+      return has;
+  }
+  
+  const minMediaHeight = hasMedia()?200:0;
+  
+  const getMediaHeight = (media) => {
+    if (media) {
+      const aspect_ratio = media.height ? media.height / media.width : 1;
+      const height = window_width * aspect_ratio;
       return height < window_height ? height : window_height;
     } else {
-      return minImageHeight;
+      return minMediaHeight;
     }
   };
 
-  const [imageHeight, setImageHeight] = useState(
+  const [mediaHeight, setMediaHeight] = useState(
     props.index >= 0
-      ? getPhotoHeight(photos[props.index])
-      : photos.length > 0
-      ? minImageHeight
+      ? getMediaHeight(hasVideos()?videos[0]:photos[props.index])
+      : hasMedia()
+      ? minMediaHeight
       : 0
   );
 
-  const scrollView_height = window_height - imageHeight;
+  const scrollView_height = window_height - mediaHeight;
+  
   const string_time = millisecToString(Date.now() - props.post?.data?.time);
 
   const [optionsIsVisible, setOptionsIsVisible] = useState(false);
@@ -70,12 +89,17 @@ export default function PostDetails(props = {photos: []}) {
   const isFocused = useIsFocused();
 
   useEffect(() => {
-    setImageHeight(
-      imageHeight == minImageHeight
-        ? minImageHeight
-        : getPhotoHeight(photos[current_photo_index])
+    setMediaHeight(
+      mediaHeight == minMediaHeight
+        ? minMediaHeight
+        : getMediaHeight(hasVideos()?videos[0]:photos[current_photo_index])
     );
   }, [current_photo_index]);
+  
+  useEffect(()=>{
+    console.log("Media Height : ",mediaHeight);
+    console.log("Media Width : ",window_width);
+  },[mediaHeight])
   
   useEffect(()=>{
     if(props.post?.data?.poster?.id!=props.user?.id){
@@ -129,14 +153,14 @@ export default function PostDetails(props = {photos: []}) {
   };
 
   const toggleFloatingButton = () => {
-    if (imageHeight == minImageHeight)
-      setImageHeight(getPhotoHeight(photos[current_photo_index]));
-    else setImageHeight(minImageHeight);
+    if (mediaHeight == minMediaHeight)
+      setMediaHeight(getMediaHeight(hasVideos()?videos[0]:photos[current_photo_index]));
+    else setMediaHeight(minMediaHeight);
   };
 
   const getImages = () => {
     return photos.map((value, index, array) => {
-      const height = getPhotoHeight(value);
+      const height = getMediaHeight(value);
       return (
         <View key={index} style={inner_styles.photo_page}>
           <Image
@@ -152,13 +176,20 @@ export default function PostDetails(props = {photos: []}) {
   };
   
   useEffect(()=>{
-    if(props.post?.data?.poster?.data?.level>1){
+    if(props.post?.data?.poster?.data?.level>2){
       loadInterstitialAd();
     }
   },[])
+  
 
+  const main_color = getColorStyle(theme);
+  const sub_color = getColorStyle(theme,[0]);
+  const panel_color = getColorStyle(theme,[1]);
+  const panel_inner_color = getColorStyle(theme,[1,0])
+  const other_color = getColorStyle(theme,[2]);
+  const other_inner_color = getColorStyle(theme,[2,1])
   return (
-    <View style={styles.main}>
+    <View style={[styles.main,main_color.bkg]}>
       <Modal
         animation="slide"
         visible={isFocused&&showComments}
@@ -177,13 +208,14 @@ export default function PostDetails(props = {photos: []}) {
               
             }
           }
+          theme={theme}
         />
       </Modal>
-      {photos.length > 0 && (
-        <Image source={photos[0]} style={styles.background_image} />
+      {hasMedia() && (
+        <Image source={hasVideos()?props.thumbnail:photos[0]} style={styles.background_image} />
       )}
-      {photos.length > 0 && (
-        <View style={{height: imageHeight, paddingBottom: 5}}>
+      <View style={{height:mediaHeight, paddingBottom: 5}}>
+      {photos?.length > 0 ? (
           <PagerView
             style={styles.top_pagerView}
             initialPage={props.index}
@@ -192,38 +224,42 @@ export default function PostDetails(props = {photos: []}) {
             }
             children={getImages()}
           />
-          <TouchableOpacity
-            style={styles.floating_toggle}
+      ):(
+        <IBVideoView source={videos[0]} height={mediaHeight} width={window_width}/>)}
+        {photos?.length>1&&(<View style={{position:'absolute',backgroundColor:main_color._bkg+"55"}}>
+          <Text style={{color:main_color._elm+"88"}}> {(current_photo_index+1)+"/"+photos?.length} </Text>
+        </View>)}
+        <TouchableOpacity
+            style={[styles.floating_toggle,{borderColor:sub_color._elm+"66",backgroundColor:sub_color._bkg+"88"}]}
             onPress={toggleFloatingButton}
           >
             <Ionicons
-              name={imageHeight == minImageHeight ? "caret-down" : "caret-up"}
+              name={mediaHeight == minMediaHeight ? "caret-down" : "caret-up"}
               size={40}
-              color={"#fff5"}
+              color={sub_color._elm+"55"}
             />
           </TouchableOpacity>
-        </View>
-      )}
+         </View>
       <View>
         <ScrollView
           style={{
             height: scrollView_height,
           }}
         >
-          <View style={styles.text_view}>
-            <Text style={styles.text}>{props.post?.data?.text}</Text>
+          <View style={[styles.text_view,panel_color.bkg]}>
+            <Text style={[styles.text,panel_color.elm]}>{props.post?.data?.text}</Text>
           </View>
-          <View style={styles.links}>
+          <View style={[styles.links,panel_color.bkg]}>
             {props.post?.data?.links?.map((link, index, array) => {
               return <Link {...link} key={index} />;
             })}
           </View>
           <View
-            style={styles.author_view}
+            style={[styles.author_view,panel_color.bkg]}
             pointerEvents={props.post?.data?.poster?.data ? "auto" : "none"}
           >
             <TouchableOpacity
-              style={styles.author_image_button}
+              style={[styles.author_image_button,panel_inner_color.bkg]}
               disabled={props.disableUserPicture}
               onPress={navigateToUser}
             >
@@ -234,16 +270,16 @@ export default function PostDetails(props = {photos: []}) {
             </TouchableOpacity>
             <View style={styles.author_details_view}>
               <View>
-                <Text style={styles.author}>Author :</Text>
-                <Text style={styles.author_username}>
+                <Text style={[styles.author,panel_color.elm]}>Author :</Text>
+                <Text style={[styles.author_username,panel_color.elm]}>
                   {props.post?.data?.poster?.data?.username}
                 </Text>
               </View>
-              <Text style={styles.time}>{string_time}</Text>
-              <Text style={styles.time}>
+              <Text style={[styles.time,panel_color.elm]}>{string_time}</Text>
+              <Text style={[styles.time,panel_color.elm]}>
                 {new IBDate(new Date(props.post?.data?.time)).toText(true)}
               </Text>
-              <Text style={styles.time}>
+              <Text style={[styles.time,panel_color.elm]}>
                 {new Date(props.post?.data?.time).toLocaleTimeString("en-US", {
                   hour: "numeric",
                   minute: "numeric",
@@ -257,12 +293,11 @@ export default function PostDetails(props = {photos: []}) {
               />
             </View>
           </View>
-          <View style={{
-          backgroundColor:"#fff",
+          <View style={[{
           margin:5,
           padding:2,
           borderRadius:5
-          }}>
+          },panel_color.bkg]}>
           <View
             style={{
               flexDirection:"row",
@@ -270,21 +305,22 @@ export default function PostDetails(props = {photos: []}) {
             }}
           >
             <TouchableOpacity style={styles.post_props}>
-              <Ionicons name="heart-outline" size={20}/>
-              <Text style={styles.post_props_text}>{hearts}</Text>
+              <Ionicons name="heart-outline" size={20} color={panel_color._elm}/>
+              <Text style={[styles.post_props_text,panel_color.elm]}>{hearts}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.post_props}>
-              <Ionicons name="stats-chart-outline" size={20}/>
-              <Text style={styles.post_props_text}>{traffic}</Text>
+              <Ionicons name="stats-chart-outline" size={20} color={panel_color._elm}/>
+              <Text style={[styles.post_props_text,panel_color.elm]}>{traffic}</Text>
             </TouchableOpacity>
           <TouchableOpacity style={styles.post_props}
             onPress={()=>{setShowComments(true)}}
           >
-            <Ionicons name="chatbox-outline" color="#22f" size={20}/>
-            <Text style={styles.post_props_text}>{"≈"+comments}</Text>
+            <Ionicons name="chatbox-outline" color={panel_inner_color._elm} size={20} color={panel_color._elm}/>
+            <Text style={[styles.post_props_text,panel_color.elm]}>{"≈"+comments}</Text>
           </TouchableOpacity>
           </View>
           { peek_comment&&(<CommentTile 
+            theme={theme}
             comment={peek_comment}
             isDeleting={false}
             user={props.user}
@@ -298,50 +334,49 @@ export default function PostDetails(props = {photos: []}) {
               <Ionicons
                 name="settings"
                 size={40}
-                color={IBTheme.defaultTextColor}
+                color={main_color._elm}
               />
             </TouchableOpacity>
             {optionsIsVisible &&(
             <View>
-              <View style={{
-                  backgroundColor:"#cdf",
+              <View style={[{
                   paddingHorizontal:10,
                   paddingVertical:5,
-                }}>
+                },other_color.bkg]}>
                 <View style={{
                     borderWidth:1,
                     borderRadius:10,
                     margin:5,
                   }}>
-                  <Text style={{
+                  <Text style={[{
                     fontSize:10,
                     borderBottomWidth:0.5
-                  }}> Post Link</Text>
-                <Text style={{
+                  },other_color.elm]}> Post Link</Text>
+                <Text style={[{
                   fontStyle:"italic",
                   marginLeft:20,
                   marginRight:5,
                   marginVertical:10,
                   borderBottomWidth:2,
-                }}> {post_link}</Text>
+                },other_color.elm]}> {post_link}</Text>
                 </View>
                 <View style={{
                   flexDirection:"row",
                   justifyContent:"space-between"
                 }}>
-                  {props.post?.data?.poster?.id==props.user?.id&&(<TouchableOpacity style={styles.options_button_text}
+                  {props.post?.data?.poster?.id==props.user?.id&&(<TouchableOpacity style={[styles.options_button_text,other_inner_color.bkg]}
 
                   onPress={deletePost}
 
                   >
-                    <Ionicons name="close" size={20}/>
-                    <Text> Delete</Text>
+                    <Ionicons name="close" size={20} color={other_inner_color._elm}/>
+                    <Text style={other_inner_color.elm}> Delete</Text>
                   </TouchableOpacity>)}
-                  <TouchableOpacity style={styles.options_button_text}
+                  <TouchableOpacity style={[styles.options_button_text,other_inner_color.bkg]}
                   onPress={()=>{copyLink(post_link)}}
                   >
-                    <Ionicons name="clipboard-outline" size={25}/>
-                    <Text>Copy</Text>
+                    <Ionicons name="clipboard-outline" size={25} color={other_inner_color._elm}/>
+                    <Text style={other_inner_color.elm}>Copy</Text>
                   </TouchableOpacity>
                   
                 </View>
@@ -356,7 +391,7 @@ export default function PostDetails(props = {photos: []}) {
 }
 
 const styles = StyleSheet.create({
-  main: {flex: 1, backgroundColor: IBTheme.backgroundColor},
+  main: {flex: 1, backgroundColor: IBColors.background[ColorIndex.BASIC]},
   background_image: {
     width: "100%",
     height: "100%",
@@ -365,33 +400,34 @@ const styles = StyleSheet.create({
   },
   top_pagerView: {flex: 1, height: 100},
   floating_toggle: {
-    backgroundColor: "#02f5",
+    backgroundColor: IBColors.surface_alpha[ColorIndex.BASIC],
     width: 50,
     height: 50,
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
     position: "absolute",
-    bottom: 0,
+    bottom: -40,
     right: 0,
     borderWidth: 4,
-    borderColor: "#fff5",
+    zIndex:10,
+    borderColor: "#fff9",
   },
   text_view: {
-    backgroundColor: "white",
+    backgroundColor: IBColors.surface[ColorIndex.DISTINCT],
     margin: 5,
     padding: 5,
     borderRadius: 10,
   },
   text: {borderTopWidth: 1, borderBottomWidth: 1},
   links: {
-    backgroundColor: "white",
+    backgroundColor: IBColors.surface[ColorIndex.DISTINCT],
     margin: 5,
     padding: 5,
     borderRadius: 10,
   },
   author_view: {
-    backgroundColor: "white",
+    backgroundColor: IBColors.surface[ColorIndex.DISTINCT],
     margin: 5,
     padding: 5,
     borderRadius: 10,
@@ -400,7 +436,7 @@ const styles = StyleSheet.create({
   author_image_button: {
     width: 104,
     height: 104,
-    backgroundColor: "blue",
+    backgroundColor: IBColors.layer[ColorIndex.DISTINCT],
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 52,
@@ -420,16 +456,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  delete_button: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: xIBTheme.tertiaryColor,
-    margin: 5,
-    padding: 5,
-    borderRadius: 10,
-  },
   options_button_text:{
-    backgroundColor:"#fff",
+    backgroundColor:IBColors.layer[ColorIndex.EXTRA],
     borderRadius:5,
     flexDirection:"row",
     justifyContent:"center",

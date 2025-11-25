@@ -9,21 +9,23 @@ import {
 import {Ionicons} from "@expo/vector-icons"
 import {useState,useContext} from "react"
 import {AppContext} from "../../AppContext"
+import {IBColors,ColorIndex,getColorStyle} from "../../IBColors"
 export default function NavLink(props){
   const {user} = useContext(AppContext);
+  const main_color = getColorStyle(props.theme,[1]);
   return (
-  <TouchableOpacity style={styles.main}
+  <TouchableOpacity style={[styles.main,main_color.bkg]}
     onPress={props.onPress}>
     {props.children}
-    <Ionicons name={props.icon} size={30} color={"#fff"}/>
+    <Ionicons name={props.icon} size={25} color={main_color._elm}/>
    {props.tip_condition&&( <Text style={[styles.text,props.tip_color&&{backgroundColor:
-   props.tip_color}]}>{props.tip}</Text>)}
+   props.tip_color},main_color.bkg,main_color.elm]}>{props.tip}</Text>)}
   </TouchableOpacity>);
 }
 
 const styles = StyleSheet.create({
   main:{
-    backgroundColor:"#22f",
+    backgroundColor:IBColors.layer[ColorIndex.DISTINCT],
     borderRadius:25,
     padding:10,
     justifyContent:"center",
@@ -31,14 +33,14 @@ const styles = StyleSheet.create({
   },
   text:{
     position:"absolute",
-    backgroundColor:"#22f",
+    backgroundColor:IBColors.layer[ColorIndex.DISTINCT],
     top:-5,
     left:-5,
     color:"#fff",
-    fontSize:15,
-    width:24,
-    height:24,
-    borderRadius:12,
+    fontSize:10,
+    width:20,
+    height:20,
+    borderRadius:10,
     textAlign:"center",
     fontWeight:"600"
     }

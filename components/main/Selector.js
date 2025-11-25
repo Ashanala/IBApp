@@ -14,11 +14,11 @@ export default function Selector(
     value: 0,
     onChange: (forward) => {},
     style: StyleSheet.compose(),
-    size: 0,
   }
 ) {
   const value = props.value;
-  const size = props.size;
+  const size = 30;
+  const color = props.color;
   return (
     <View style={props.style || styles.main}>
       <TouchableOpacity
@@ -26,15 +26,15 @@ export default function Selector(
           props.onChange(false);
         }}
       >
-        <Ionicons name="caret-back" size={size} color={THEME.textColor0} />
+        <Ionicons name="caret-back" size={size*1.5} color={color} />
       </TouchableOpacity>
-      <Text style={{fontSize: size, color: THEME.textColor0}}>{value}</Text>
+      <Text style={{fontSize: size, color:color}}>{value}</Text>
       <TouchableOpacity
         onPress={() => {
           props.onChange(true);
         }}
       >
-        <Ionicons name="caret-forward" size={size} color={THEME.textColor0} />
+        <Ionicons name="caret-forward" size={size*1.5} color={color} />
       </TouchableOpacity>
     </View>
   );

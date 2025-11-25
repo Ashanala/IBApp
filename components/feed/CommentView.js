@@ -16,8 +16,10 @@ import {Ionicons} from "@expo/vector-icons";
 import {fb} from "../tools/firebase/IBFirebase";
 import {createCommentNotification} from "../tools/functions/AppTools"
 import {useState,useEffect,useRef} from "react";
+import {getColorStyle} from "../IBColors";
 
 export default function CommentView(props){
+  const theme = props.theme;
   const [comment_count,setCommentCount] = useState(5);
   const comment_unsubscribe = useRef();
   const [count_max_reached,setCountMaxReached] = useState(false);
@@ -114,17 +116,21 @@ export default function CommentView(props){
           
   
   const height = Dimensions.get("screen").height;
+  
+  const main_color = getColorStyle(theme,[0]);
+  const inner_color = getColorStyle(theme,[0,0]);
   return (<View style={{
   flex:1}}>
     <View style={{flex:1}} onTouchStart={()=>{
     props.onClose();
     }}></View>
-    <View style={styles.comment_section}>
+    <View style={[styles.comment_section,main_color.bkga("ee")]}>
     <ScrollView>
       {
         post_comments.map((comment,index)=>{
           return (
-              <CommentTile 
+              <CommentTile
+                theme={theme}
                 key={comment.id}
                 comment={comment}
                 isDeleting={index==is_deleting}
@@ -136,29 +142,28 @@ export default function CommentView(props){
         })
       }
       {!count_max_reached&&(<TouchableOpacity
-        style={{
-          backgroundColor:"#fff",
+        style={[{
           justifyContent:"center",
           flexDirection:"row"
-        }}
+        },inner_color.bkg]}
         onPress={()=>{
           setIsLoadingMore(true);
           setCommentCount(comment_count+5)
         }}
       >
-        <Text style={{
+        <Text style={[{
           fontWeight:"600",
           fontStyle:"italic",
           marginHorizontal:5,
-        }}> See more</Text>
+        },inner_color.elm]}> See more</Text>
         {isLoadingMore&&<ActivityIndicator color="#00f" />}
       </TouchableOpacity>)}
     </ScrollView>
     {props.user?.data?.verified&&(<View style={{justifyContent:"flex-end"}}>
       <View style={{flexDirection:"row",margin:5}}>
         <TextInput placeholder="Comment..."
-          placeholderTextColor="#fff"
-          style={styles.text_input}
+          placeholderTextColor={main_color._elm}
+          style={[styles.text_input,inner_color.elm]}
           multiline
           value={comment_text}
           onChangeText = {setCommentText}
@@ -172,14 +177,16 @@ export default function CommentView(props){
             console.log(comment);
             fb.addDocument(["posts",props.post?.id,"comments"],comment).then(()=>{
             updateCommentCount(1);
-            const message = createCommentNotification(props.user?.data?.username,comment_text);
-            fb.setDocument(comment_notif_doc,{
-              time:Date.now(),
-              text:message,
-              text_link:"IB::"+props.post?.id,
-              sender : "ibapp_comment",
-            },true)
-            fb.incrementField(comment_notif_doc.slice(0,2),"notifs",1);
+            if(props.post?.data?.poster?.id!=props.user?.id){
+              const message = createCommentNotification(props.user?.data?.username,comment_text);
+              fb.setDocument(comment_notif_doc,{
+                time:Date.now(),
+                text:message,
+                text_link:"IB::"+props.post?.id,
+                sender : "ibapp_comment",
+              },true)
+              fb.incrementField(comment_notif_doc.slice(0,2),"notifs",1);
+            }
               ToastAndroid.showWithGravity(
             "Comment Submitted!",
             ToastAndroid.SHORT,
@@ -194,14 +201,14 @@ export default function CommentView(props){
             
           }}
         >
-          <Ionicons name="send" size={40} color="#fff"/>
+          <Ionicons name="send" size={40} color={main_color._elm}/>
         </TouchableOpacity>
       </View>
       </View>)}
     </View>
     {isLoading&&(<ActivityIndicator 
       size="large" 
-      color="#fff"
+      color={main_color._elm}
       style={{
       position:"absolute",
       left:0,

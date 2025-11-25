@@ -1,4 +1,3 @@
-
 import React,{useState,useRef,useEffect,useContext} from "react"
 import {NavigationContainer,useFocusEffect} from "@react-navigation/native"
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
@@ -10,6 +9,8 @@ import {
   View,
   Alert,
 } from "react-native"
+
+import {ColorContext,getColorStyle} from "./IBColors";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -27,6 +28,7 @@ import MessageView from "./message/MessageView"
 const Stack = createNativeStackNavigator();
 
 export default function IBMain(props){
+  const {theme} = useContext(ColorContext);
   const [is_online,setIsOnline] = useState(false);
   const userAuthUnsubscribe_Ref= useRef();
   const userSnapshot_Ref = useRef();
@@ -38,15 +40,18 @@ export default function IBMain(props){
   const [author_request_link,setAuthorRequestLink] = useState(null);
   const [emailVerificationMessageShown,setEmailVerificationMessageShown] = useState(false);
   
-  const [uploading_progress,setUploadingProgress] = useState(false);
-  const [uploadPost,setUploadPost] = useState();
+  const [uploading_progress,setUploadingProgress] = useState(0);
+  const [shouldUploadPost,setShouldUploadPost] = useState(false);
+  const uploadPostRef = useRef();
   
   useEffect(()=>{
-    if(typeof uploadPost === "function"){
-      uploadPost();
-      setUploadPost(undefined);
+    if(shouldUploadPost){
+      if(typeof uploadPostRef.current === "function"){
+        uploadPostRef.current();
+        setShouldUploadPost(false);
+      }
     }
-  },[uploadPost]);
+  },[shouldUploadPost]);
   
 const handleNotification = (content) => {
     switch (content.data?.type) {
@@ -62,9 +67,9 @@ const handleNotification = (content) => {
           //The time the post was made.
           const time = content.data?.time;
           console.log("Data : ", content.data);
-          Navigation.navigate(
+          Navigation.push("IBMain",
             {
-              name: "Feed",
+              screen: "Feed",
               params: {
                 type: FeedType.DAY,
                 data: {epochMillisec: time - 1000},
@@ -74,9 +79,9 @@ const handleNotification = (content) => {
         break;
       case "none":
         {
-          Navigation.navigate(
+          Navigation.push("IBMain",
             {
-              name: "Feed",
+              screen: "Feed",
               params: {type: FeedType.CONNECT},
             });
         }
@@ -116,7 +121,7 @@ const handleNotification = (content) => {
     .then((update)=>{
       if(update){
         const {version,link} = update.data();
-        if(version!="IB0"){
+        if(version!="IB1.2"){
           setAppUpdateLink(link);
           console.log("UPDATE : ",update.data())
         }
@@ -230,17 +235,20 @@ const handleNotification = (content) => {
     }
   };
   
+  const header_color = getColorStyle(theme);
+  
   return (
     <AppContext.Provider value={{user,is_online,setShowNav,unsubscribeUserAuth,author_request_link,setShowNavHandle,
-      setUploadPost,
+      uploadPostRef,
       uploading_progress,
       setUploadingProgress,
+      setShouldUploadPost,
     }}>
   <View style={{flex:1}}>
     <Stack.Navigator
       screenOptions={{
-          headerStyle: {backgroundColor: IBTheme.backgroundColor},
-          headerTintColor: IBTheme.defaultTextColor,
+          headerStyle:header_color.bkg,
+          headerTintColor: header_color._elm,
         }}
     >
       <Stack.Screen
@@ -263,7 +271,7 @@ const handleNotification = (content) => {
         component={MessageView}
         options={{title:"Messages",headerShown:false}}/>
     </Stack.Navigator>
-    <Nav showNav={showNav} loading_user={loading_user} app_update_link={app_update_link} showNavHandle={showNavHandle}  uploading_progress={uploading_progress}/>
+    <Nav showNav={showNav} loading_user={loading_user} app_update_link={app_update_link} showNavHandle={showNavHandle}  uploading_progress={uploading_progress} />
   </View>
   </AppContext.Provider>);
 }

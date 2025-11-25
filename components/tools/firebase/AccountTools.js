@@ -30,6 +30,7 @@ export const Login = async (
           data: () => {
             return {
               username: username,
+              username_lowercase:username.toLowerCase(),
               email: email,
               password: password,
               photo: "",
@@ -87,7 +88,7 @@ export const sendEmailVerification = (shouldAskFirst,login) => {
   if (shouldAskFirst) {
     const title = "🔐 Account Verification Needed";
     const noLogin_text = "To continue, please verify your email address. Unverified accounts may be deleted after 24 hours, so don’t wait too long! \n\t Choose one of the options below: \n\t\t 📧 Send/Resend Verification Email  \n\t\t\t We’ll send a new verification link to your email so you can complete the process.\n\t\t\t Don't see the email? Be sure to check your spam or junk folder.\n"
-    const withLogin_text = noLogin_text+"\n\t\t 🔁 Log In to a Different Account  \n\t\t\t Want to switch accounts? You can log in with another email address.\n \n\t\t  ✅ Log In Again  \n\t\t\t If you’ve already verified your email, logging in again may clear this message."
+    const withLogin_text = noLogin_text+"\n\t\t  ✅ LOG IN AGAIN \n\t\t\t If you’ve already verified your email, logging in again may clear this message.\n \n\t\t 🔁 Log In to a Different Account  \n\t\t\t Want to switch accounts? You can log in with another email address."
     /*const noLogin_text = "It appears your email hasn't been verified yet—accounts with unverified emails may be deleted after 24 hours. Please click RESEND to receive a new verification email";
     const withLogin_text = noLogin_text+", or if you'd prefer to use another account, simply click LOG IN to proceed"*/
     const text = (login? withLogin_text:noLogin_text)+".";

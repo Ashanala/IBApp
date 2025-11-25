@@ -7,55 +7,60 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import THEME from "../tools/constants/THEME";
+import {ColorContext,getColorStyle} from '../IBColors'
+import {useContext} from 'react'
 
-export default class DateOptionsView extends React.Component {
-  render() {
-    const date = this.props.date || 10;
-    const month = this.props.month || "January";
-    const day = this.props.day || "Sunday, Ebina";
-    const year = this.props.year || 2024;
-    const epochMillisec = this.props.epochMillisec || 0;
-    const is_after_launch = this.props.is_after_launch || false;
-    const is_before_today = this.props.is_before_today || false;
-    return (
-      <View style={{flex: 1}}>
-        <TouchableOpacity
-          onPress={() => {
-            this.props.dismiss();
-          }}
-          style={{flex: 1}}
-        />
-        <View style={styles.content}>
-          <View style={styles.day_details}>
-            <View style={{flexDirection: "row"}}>
-              <Text style={styles.date}>{date}</Text>
-              <Text style={styles.month}>{month}</Text>
-            </View>
-            <View>
-              <Text style={styles.day}>{day}</Text>
-              <Text style={styles.year}>{year}</Text>
-            </View>
+export default function DateOptionsView(props) {
+  const {theme} = useContext(ColorContext)
+  const date = props.date || 10;
+  const month = props.month || "January";
+  const day = props.day || "Sunday, Ebina";
+  const year = props.year || 2024;
+  const epochMillisec = props.epochMillisec || 0;
+  const is_after_launch = props.is_after_launch || false;
+  const is_before_tommorow = props.is_before_tommorow || false;
+  
+  const details_color = getColorStyle(theme,[0,0]);
+  const button_color = details_color;
+  
+  return (
+    <View style={{flex: 1}}>
+      <TouchableOpacity
+        onPress={() => {
+          props.dismiss();
+        }}
+        style={{flex: 1}}
+      />
+      <View style={styles.content}>
+        <View style={[styles.day_details,details_color.bkg]}>
+          <View style={{flexDirection: "row"}}>
+            <Text style={[styles.date,details_color.elm]}>{date}</Text>
+            <Text style={[styles.month,details_color.elm]}>{month}</Text>
           </View>
-          {is_after_launch && is_before_today && (
-            <TouchableOpacity
-              style={styles.see_posts}
-              onPress={() => {
-                this.props.onSeePostPress(epochMillisec);
-              }}
-            >
-              <Text style={styles.see_posts_text}> See Posts </Text>
-            </TouchableOpacity>
-          )}
+          <View>
+            <Text style={[styles.day,details_color.elm]}>{day}</Text>
+            <Text style={[styles.year,details_color.elm]}>{year}</Text>
+          </View>
         </View>
-        <TouchableOpacity
-          onPress={() => {
-            this.props.dismiss();
-          }}
-          style={{flex: 1}}
-        />
+        {is_after_launch && is_before_tommorow && (
+          <TouchableOpacity
+            style={[styles.see_posts,button_color.bkg]}
+            onPress={() => {
+              props.onSeePostPress(epochMillisec);
+            }}
+          >
+            <Text style={[styles.see_posts_text,button_color.elm]}> See Posts </Text>
+          </TouchableOpacity>
+        )}
       </View>
-    );
-  }
+      <TouchableOpacity
+        onPress={() => {
+          props.dismiss();
+        }}
+        style={{flex: 1}}
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -67,7 +72,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   day_details: {
-    backgroundColor: "white",
     margin: 5,
     padding: 5,
     minWidth: "80%",
@@ -87,7 +91,6 @@ const styles = StyleSheet.create({
   day: {fontSize: 30, fontStyle: "italic"},
   year: {textAlign: "right", fontStyle: "italic"},
   see_posts: {
-    backgroundColor: "white",
     margin: 5,
     padding: 5,
     minWidth: "80%",

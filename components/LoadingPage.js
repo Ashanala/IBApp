@@ -6,13 +6,17 @@ import {
   Text,
   View,
 } from "react-native";
-import {useEffect, useState} from "react";
+import {useEffect, useState,useContext} from "react";
+import {IBColors,ColorIndex,ColorContext} from "./IBColors"
+import {fb} from "./tools/firebase/IBFirebase"
 
 export default function LoadingPage(props) {
   const [thickIBFade] = useState(new Animated.Value(0));
   const [pointIBFade] = useState(new Animated.Value(1));
   const [titleTranslate] = useState(new Animated.Value(0));
   const [subtitleFade] = useState(new Animated.Value(0));
+  
+  const {theme_updated} = useContext(ColorContext);
 
   useEffect(() => {
     const width = Dimensions.get("window").width;
@@ -57,11 +61,13 @@ export default function LoadingPage(props) {
         useNativeDriver: true,
       }),
     ]).start(async () => {
-      console.log("End");
-      console.log("Loading MainPage...");
-      props.navigation.replace("IBMain");
+      if(theme_updated){
+        console.log("End");
+        console.log("Loading MainPage...");
+        props.navigation.replace("IBMain");
+      }
     });
-  }, []);
+  }, [theme_updated]);
   return (
     <View
       style={{
@@ -110,7 +116,7 @@ export default function LoadingPage(props) {
           <Animated.View style={{opacity: subtitleFade}}>
             <Text
               style={{
-                color: "white",
+                color: IBColors.elements[ColorIndex.BASIC],
                 fontSize: 15,
                 fontWeight: "600",
                 fontStyle: "italic",

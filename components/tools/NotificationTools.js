@@ -12,7 +12,7 @@ export const saveToken = async (token) => {
     console.log("Token Stored", token);
     const user_id = await AsyncStorage.getItem("user_id");
     if (user_id) {
-      fb.updateDocument(["users",user_id],{token: token.data})
+      fb.updateDocument(["users",user_id],{token: token.data,time:Date.now()})
         .then(() => {
           console.log("Token Updated on User Server");
         })
@@ -24,12 +24,13 @@ export const saveToken = async (token) => {
     console.log("UNIQUE ID : ",unique_id);
     if(unique_id){
       console.log("Uploading token...")
-      fb.setDocument(["tokens",unique_id+""],{token:token.data},true)
+      fb.setDocument(["tokens",unique_id+""],{token:token.data,time:Date.now()},true)
       .then(()=>{
         console.log("Token Updated to Tokens Server");
       }).catch((reason)=>{
         console.log("Could not upload token : ",reason);
       });
+      return unique_id;
     }
   } catch (error) {
     console.log("Cannot Save Token : ", error);

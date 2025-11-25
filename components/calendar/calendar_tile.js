@@ -2,6 +2,7 @@ import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import CONST from "../tools/constants/CONST";
 import {useTheme} from "@react-navigation/native";
 import THEME from "../tools/constants/THEME";
+import {IBColors,ColorIndex} from "../IBColors"
 
 export default function CalendarTile(
   props = {size: 50, date: 27, localday: 0, onPress: (date, localday) => {}}
@@ -11,13 +12,13 @@ export default function CalendarTile(
   const localday = props.localday;
   return (
     <TouchableOpacity
-      style={styles.main}
+      style={[styles.main,{borderColor:props.color}]}
       onPress={() => {
         props.onPress(date, localday);
       }}
     >
-      <Text style={{fontSize: size, color: THEME.textColor0}}>{date}</Text>
-      <Text style={{fontSize: (size * 25) / 50, color: THEME.textColor0}}>
+      <Text style={{fontSize: size, color:props.color}}>{date}</Text>
+      <Text style={{fontSize: (size * 25) / 50, color: props.color}}>
         {CONST.LocalDay[localday]}
       </Text>
     </TouchableOpacity>
