@@ -382,7 +382,7 @@ export default function PostTile(props){
                         post?.data?.poster?.data?.photo ||
                         CONST.default_profile_photo
                       }
-                      style={{width: 50, height: 50, borderRadius: 25}}
+                      style={styles.user_image}
                     />
                     <Ionicons
                       name="star"
@@ -476,6 +476,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
     top: -15,
+  },
+  user_image:{
+    width:50,
+    height:50,
+    borderRadius:25,
+    position:'absolute'
   },
 
   body: {

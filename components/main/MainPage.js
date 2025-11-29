@@ -24,7 +24,7 @@ import PostTile from "../feed/post_tile";
 import {fb} from "../tools/firebase/IBFirebase";
 import {BannerAd, BannerAdSize} from "react-native-google-mobile-ads";
 import {SafeAreaView} from "react-native-safe-area-context";
-import {Ionicons} from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import DateOptionsView from "./DateOptionsView";
 import * as NetInfo from "@react-native-community/netinfo";
 import FeedType from "../feed/FeedType";
@@ -302,7 +302,7 @@ export default function MainPage(props){
               })
             }}
             >
-              <Ionicons name={show_pins?"close":"chevron-down"} size={20} color={feed_color._elm}/>
+              <Ionicons name={show_pins?"close":"chevron-down"} size={20} color={"#f00"}/>
             </TouchableOpacity>
           </View>
           {show_pins&&(<SafeAreaView
@@ -355,7 +355,7 @@ export default function MainPage(props){
               style={[styles.feed_button,feed_color.bkg]}
             >
               <Ionicons
-                name={"cloud-offline"}
+                name={"cloud-offline-sharp"}
                 color={feed_color._elm}
                 size={50}
               />
