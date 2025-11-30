@@ -24,7 +24,7 @@ import PostTile from "../feed/post_tile";
 import {fb} from "../tools/firebase/IBFirebase";
 import {BannerAd, BannerAdSize} from "react-native-google-mobile-ads";
 import {SafeAreaView} from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import {Ionicons} from "@expo/vector-icons";
 import DateOptionsView from "./DateOptionsView";
 import * as NetInfo from "@react-native-community/netinfo";
 import FeedType from "../feed/FeedType";

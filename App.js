@@ -14,6 +14,8 @@ import {DefaultScheme,DefaultScheme1,DefaultScheme2,DefaultScheme3,ColorContext,
 import * as Application from "expo-application"
 import {fb} from "./components/tools/firebase/IBFirebase"
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Font from "expo-font"
+import {Ionicons} from "@expo/vector-icons"
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +32,7 @@ Notifications.setNotificationHandler({
 export default function App() {
   const [theme,setTheme] = useState(DefaultScheme1);
   const [theme_updated,setThemeUpdated] = useState(false);
+  const [font_loaded,setFontLoaded] = useState(false);
   useEffect(()=>{
     notificationSettings().then(async ()=>{
       const device_id = Application.getAndroidId();
@@ -59,13 +62,25 @@ export default function App() {
   },[])
   
   useEffect(()=>{
+    async function loadFonts (){
+      await Font.loadAsync({...Ionicons.font});
+      setFontLoaded(true);
+    }
+    loadFonts();
+  },[])
+  
+  useEffect(()=>{
     console.log("THEME : ",theme);
   },[theme])
+  
+  useEffect(()=>{
+    console.log("FONTS : ",font_loaded);
+  },[font_loaded])
   
   const header_color = getColorStyle(theme);
   
   return (
-    <ColorContext.Provider value={{theme,setTheme,theme_updated}}>
+    <ColorContext.Provider value={{theme,setTheme,theme_updated,font_loaded}}>
     <NavigationContainer ref={navigationRef}>
       <StatusBar translucent />
       <Stack.Navigator

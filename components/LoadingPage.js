@@ -16,7 +16,7 @@ export default function LoadingPage(props) {
   const [titleTranslate] = useState(new Animated.Value(0));
   const [subtitleFade] = useState(new Animated.Value(0));
   
-  const {theme_updated} = useContext(ColorContext);
+  const {theme_updated,font_loaded} = useContext(ColorContext);
 
   useEffect(() => {
     const width = Dimensions.get("window").width;
