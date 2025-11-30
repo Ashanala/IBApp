@@ -42,7 +42,8 @@
       "@react-native-firebase/auth",
       "@react-native-firebase/crashlytics",
       "expo-video",
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "eas": {
