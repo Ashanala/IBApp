@@ -24,7 +24,7 @@ import PostTile from "../feed/post_tile";
 import {fb} from "../tools/firebase/IBFirebase";
 import {BannerAd, BannerAdSize} from "react-native-google-mobile-ads";
 import {SafeAreaView} from "react-native-safe-area-context";
-import {Ionicons} from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import DateOptionsView from "./DateOptionsView";
 import * as NetInfo from "@react-native-community/netinfo";
 import FeedType from "../feed/FeedType";
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
                 alignItems: 'center',
                 padding:8,
                 borderRadius:5,
-                marginVertical:3
+                marginVertical:3,
   },
   feed_inner_button_text:{
                   color:'#fff',

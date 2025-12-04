@@ -14,6 +14,7 @@ import {DefaultScheme,DefaultScheme1,DefaultScheme2,DefaultScheme3,ColorContext,
 import * as Application from "expo-application"
 import {fb} from "./components/tools/firebase/IBFirebase"
 import AsyncStorage from "@react-native-async-storage/async-storage";
+//import {useFonts} from "expo-font"
 import * as Font from "expo-font"
 import {Ionicons} from "@expo/vector-icons"
 
@@ -33,6 +34,11 @@ export default function App() {
   const [theme,setTheme] = useState(DefaultScheme1);
   const [theme_updated,setThemeUpdated] = useState(false);
   const [font_loaded,setFontLoaded] = useState(false);
+  
+  /*const [font_loaded] = useFonts({
+    ionicons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),
+  });*/
+  
   useEffect(()=>{
     notificationSettings().then(async ()=>{
       const device_id = Application.getAndroidId();
@@ -61,13 +67,32 @@ export default function App() {
     })
   },[])
   
-  useEffect(()=>{
+/*  useEffect(()=>{
     async function loadFonts (){
       await Font.loadAsync({...Ionicons.font});
       setFontLoaded(true);
     }
     loadFonts();
-  },[])
+  },[])*/
+  
+  useEffect(() => {
+    async function loadFonts() {
+      try {
+        // THIS IS THE CRITICAL PART - Manually load the Ionicons font
+        await Font.loadAsync({
+          Ionicons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),
+        });
+        console.log('✅ Fonts loaded successfully');
+      } catch (error) {
+        console.error('❌ Font loading error:', error);
+      } finally {
+        setFontLoaded(true);
+        //SplashScreen.hideAsync();
+      }
+    }
+    
+    loadFonts();
+  }, []);
   
   useEffect(()=>{
     console.log("THEME : ",theme);

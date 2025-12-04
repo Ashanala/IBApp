@@ -70,7 +70,9 @@ export default function Nav(props){
       }}
       style={{
         backgroundColor:nav_handle_color._bkg+"aa",
-        borderRadius:10
+        borderRadius:10,
+        width:50,
+        height:50
       }}
     >
       <Ionicons name="expand" size={50} color={nav_handle_color._elm+"8"} />
